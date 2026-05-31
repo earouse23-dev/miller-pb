@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import {
   BRACKET_BASE,
   computeStandings,
+  findChampion,
   generateBracket,
   generateRoundRobin,
   isBracketRound,
@@ -11,6 +12,8 @@ import {
   type GeneratedMatch,
 } from './tournament-logic';
 import type {
+  LeaderboardRow,
+  LifetimeStats,
   Match,
   MatchType,
   Player,
@@ -308,16 +311,18 @@ export async function generateSeededBracket(
 export const BRACKET_ROUND_BASE = BRACKET_BASE;
 
 // ---------------------------------------------------------------------------
-// End tournament — persist final standings + mark completed.
+// Save results — final standings (+ tournament_wins) and lifetime stats.
+// Idempotent w.r.t. lifetime stats via tournaments.stats_saved so re-saving or
+// ending later never double-counts a player's career totals.
 // ---------------------------------------------------------------------------
-export async function endTournament(bundle: TournamentBundle): Promise<void> {
+export async function saveTournamentResults(bundle: TournamentBundle): Promise<void> {
   const { tournament, teams, matches, players } = bundle;
   const playerMap = new Map(players.map((p) => [p.id, p]));
   const standings = computeStandings(teams, matches, playerMap);
+  const champion = findChampion(teams, matches, playerMap);
 
-  // Clear any prior results, then write fresh ones.
+  // Rewrite this tournament's results (delete + insert keeps it a clean snapshot).
   await supabase.from('tournament_results').delete().eq('tournament_id', tournament.id);
-
   if (standings.length > 0) {
     const rows = standings.map((s) => ({
       tournament_id: tournament.id,
@@ -327,14 +332,153 @@ export async function endTournament(bundle: TournamentBundle): Promise<void> {
       points_for: s.points_for,
       points_against: s.points_against,
       rank: s.rank,
+      tournament_wins: champion && s.team_id === champion.teamId ? 1 : 0,
     }));
     const { error } = await supabase.from('tournament_results').insert(rows);
     if (error) throw new Error(error.message);
   }
 
+  // Accumulate lifetime stats exactly once per tournament.
+  if (!tournament.stats_saved) {
+    await applyLifetimeStats(bundle, champion?.teamId ?? null);
+    const { error } = await supabase
+      .from('tournaments')
+      .update({ stats_saved: true })
+      .eq('id', tournament.id);
+    if (error) throw new Error(error.message);
+  }
+}
+
+/** Add this tournament's per-player contribution to lifetime_stats. */
+async function applyLifetimeStats(
+  bundle: TournamentBundle,
+  championTeamId: string | null,
+): Promise<void> {
+  const { teams, matches, players } = bundle;
+  const playerMap = new Map(players.map((p) => [p.id, p]));
+  const standings = computeStandings(teams, matches, playerMap);
+  const standingByTeam = new Map(standings.map((s) => [s.team_id, s]));
+
+  type Delta = {
+    total_wins: number;
+    total_losses: number;
+    total_points_for: number;
+    total_points_against: number;
+    tournament_wins: number;
+    tournaments_played: number;
+  };
+  const deltas = new Map<string, Delta>();
+  const bump = (pid: string): Delta => {
+    let d = deltas.get(pid);
+    if (!d) {
+      d = {
+        total_wins: 0,
+        total_losses: 0,
+        total_points_for: 0,
+        total_points_against: 0,
+        tournament_wins: 0,
+        tournaments_played: 0,
+      };
+      deltas.set(pid, d);
+    }
+    return d;
+  };
+
+  for (const team of teams) {
+    const s = standingByTeam.get(team.id);
+    if (!s) continue;
+    const isChamp = championTeamId != null && team.id === championTeamId;
+    const teamPlayerIds = [team.player1_id, team.player2_id].filter(Boolean) as string[];
+    for (const pid of teamPlayerIds) {
+      const d = bump(pid);
+      d.total_wins += s.wins;
+      d.total_losses += s.losses;
+      d.total_points_for += s.points_for;
+      d.total_points_against += s.points_against;
+      d.tournaments_played += 1;
+      if (isChamp) d.tournament_wins += 1;
+    }
+  }
+
+  const ids = [...deltas.keys()];
+  if (ids.length === 0) return;
+
+  const { data: existingRows, error: fetchErr } = await supabase
+    .from('lifetime_stats')
+    .select('*')
+    .in('player_id', ids);
+  if (fetchErr) throw new Error(fetchErr.message);
+  const existing = new Map((existingRows ?? []).map((r) => [r.player_id, r]));
+
+  const upserts = ids.map((pid) => {
+    const d = deltas.get(pid)!;
+    const prev = existing.get(pid);
+    return {
+      player_id: pid,
+      total_wins: (prev?.total_wins ?? 0) + d.total_wins,
+      total_losses: (prev?.total_losses ?? 0) + d.total_losses,
+      total_points_for: (prev?.total_points_for ?? 0) + d.total_points_for,
+      total_points_against: (prev?.total_points_against ?? 0) + d.total_points_against,
+      tournament_wins: (prev?.tournament_wins ?? 0) + d.tournament_wins,
+      tournaments_played: (prev?.tournaments_played ?? 0) + d.tournaments_played,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  const { error } = await supabase.from('lifetime_stats').upsert(upserts, { onConflict: 'player_id' });
+  if (error) throw new Error(error.message);
+}
+
+/** Flip the tournament to completed — broadcasts the end to all devices. */
+export async function completeTournament(tournamentId: string): Promise<void> {
   const { error } = await supabase
     .from('tournaments')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', tournament.id);
+    .eq('id', tournamentId);
   if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// End tournament — save results + lifetime stats, then mark completed.
+// Used by the host's manual "End tournament" button.
+// ---------------------------------------------------------------------------
+export async function endTournament(bundle: TournamentBundle): Promise<void> {
+  await saveTournamentResults(bundle);
+  await completeTournament(bundle.tournament.id);
+}
+
+// ---------------------------------------------------------------------------
+// Lifetime stats reads — player profile + leaderboard.
+// ---------------------------------------------------------------------------
+export async function fetchLifetimeStats(playerId: string): Promise<LifetimeStats | null> {
+  const { data, error } = await supabase
+    .from('lifetime_stats')
+    .select('*')
+    .eq('player_id', playerId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function fetchLeaderboard(): Promise<LeaderboardRow[]> {
+  const { data: stats, error } = await supabase.from('lifetime_stats').select('*');
+  if (error) throw new Error(error.message);
+  const rows = stats ?? [];
+  if (rows.length === 0) return [];
+
+  const { data: playerRows, error: pErr } = await supabase
+    .from('players')
+    .select('*')
+    .in('id', rows.map((r) => r.player_id));
+  if (pErr) throw new Error(pErr.message);
+  const names = new Map((playerRows ?? []).map((p) => [p.id, p.name]));
+
+  const out: LeaderboardRow[] = rows.map((r) => ({ ...r, name: names.get(r.player_id) ?? 'Unknown' }));
+  out.sort(
+    (a, b) =>
+      b.tournament_wins - a.tournament_wins ||
+      b.total_wins - a.total_wins ||
+      a.name.localeCompare(b.name),
+  );
+  return out;
 }

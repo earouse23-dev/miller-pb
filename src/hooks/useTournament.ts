@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTournamentStore } from '@/store/useTournamentStore';
 import { useRealtime } from './useRealtime';
 import { generateSeededBracket } from '@/lib/api';
-import { computeStandings, isBracketRound } from '@/lib/tournament-logic';
+import { computeStandings, findChampion, isBracketRound } from '@/lib/tournament-logic';
 import type { Match, Player, StandingRow, TeamWithPlayers, Tournament } from '@/lib/types';
 import { getUserIdentity, resolveTeam } from '@/lib/utils';
 
@@ -26,6 +26,10 @@ export interface UseTournamentResult {
   progress: { completed: number; total: number };
   isHost: boolean;
   winnerLabel: string | null;
+  /** True once any bracket matches exist (drives the bracket view switch). */
+  hasBracket: boolean;
+  /** Set once the tournament is decided (final/RR complete). */
+  champion: { teamId: string; label: string } | null;
 }
 
 function bracketLabel(totalBracketRounds: number, indexFromStart: number): string {
@@ -104,6 +108,16 @@ export function useTournament(id: string | null): UseTournamentResult {
 
   const winnerLabel = standings.length > 0 ? standings[0].label : null;
 
+  const hasBracket = useMemo(
+    () => matches.some((m) => isBracketRound(m.round_number)),
+    [matches],
+  );
+
+  const champion = useMemo(
+    () => (bundle ? findChampion(bundle.teams, bundle.matches, players) : null),
+    [bundle, players],
+  );
+
   // "Both" format: once the round robin completes, the host generates the
   // bracket seeded by standings. Guarded so it only fires once.
   useEffect(() => {
@@ -139,5 +153,7 @@ export function useTournament(id: string | null): UseTournamentResult {
     progress,
     isHost,
     winnerLabel,
+    hasBracket,
+    champion,
   };
 }

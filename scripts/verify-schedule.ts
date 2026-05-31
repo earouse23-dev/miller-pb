@@ -4,6 +4,10 @@ import {
   generateBracket,
   isBracketRound,
   computeStandings,
+  findChampion,
+  finalBracketMatch,
+  allMatchesComplete,
+  BRACKET_BASE,
 } from '../src/lib/tournament-logic';
 import type { Match, Player, Team } from '../src/lib/types';
 
@@ -145,6 +149,72 @@ console.log('\nStandings');
   check('A diff = +10', standings.find((s) => s.team_id === 'A')!.diff === 10, `diff ${standings.find((s) => s.team_id === 'A')!.diff}`);
   check('C is last', standings[2].team_id === 'C');
   check('B beats C on H2H/record', standings[1].team_id === 'B');
+}
+
+// ---- Champion detection ----------------------------------------------------
+console.log('\nChampion detection');
+{
+  const players: Player[] = [
+    { id: 'p1', name: 'Alice', created_at: '' },
+    { id: 'p2', name: 'Bob', created_at: '' },
+    { id: 'p3', name: 'Cara', created_at: '' },
+    { id: 'p4', name: 'Dan', created_at: '' },
+  ];
+  const teams: Team[] = players.map((p) => ({
+    id: p.id.replace('p', 'T'),
+    tournament_id: 't',
+    player1_id: p.id,
+    player2_id: null,
+  }));
+  const pm = new Map(players.map((p) => [p.id, p]));
+
+  const mk = (
+    id: string,
+    round: number,
+    t1: string | null,
+    t2: string | null,
+    s1: number | null,
+    s2: number | null,
+  ): Match => ({
+    id,
+    tournament_id: 't',
+    round_number: round,
+    court_number: 1,
+    team1_id: t1,
+    team2_id: t2,
+    team1_score: s1,
+    team2_score: s2,
+    is_bye: false,
+    status: s1 != null && s2 != null ? 'completed' : 'pending',
+    created_at: id,
+  });
+
+  // All 6 round-robin match rows exist; champion only once every one is scored.
+  const rrAll = (lastScored: boolean): Match[] => [
+    mk('a', 1, 'T1', 'T2', 11, 4),
+    mk('b', 1, 'T3', 'T4', 11, 9),
+    mk('c', 2, 'T1', 'T3', 11, 7),
+    mk('d', 2, 'T2', 'T4', 5, 11),
+    mk('e', 3, 'T1', 'T4', 11, 8),
+    mk('f', 3, 'T2', 'T3', lastScored ? 11 : null, lastScored ? 6 : null),
+  ];
+  check('RR champion null while a match is unscored', findChampion(teams, rrAll(false), pm) === null);
+  const rrChamp = findChampion(teams, rrAll(true), pm);
+  check('RR champion = T1 (Alice)', rrChamp?.teamId === 'T1' && rrChamp?.label === 'Alice', JSON.stringify(rrChamp));
+
+  // Bracket: two semis + final. Champion only once final is scored.
+  const semi1 = mk('s1', BRACKET_BASE + 1, 'T1', 'T4', 11, 6);
+  const semi2 = mk('s2', BRACKET_BASE + 1, 'T2', 'T3', 8, 11);
+  const finalPending = mk('fin', BRACKET_BASE + 2, 'T1', 'T3', null, null);
+  const bracketMid = [semi1, semi2, finalPending];
+  check('bracket champion null before final', findChampion(teams, bracketMid, pm) === null);
+  check('finalBracketMatch picks the final', finalBracketMatch(bracketMid)?.id === 'fin');
+
+  const finalDone = mk('fin', BRACKET_BASE + 2, 'T1', 'T3', 9, 11);
+  const bracketDone = [semi1, semi2, finalDone];
+  const bChamp = findChampion(teams, bracketDone, pm);
+  check('bracket champion = T3 (Cara)', bChamp?.teamId === 'T3' && bChamp?.label === 'Cara', JSON.stringify(bChamp));
+  check('allMatchesComplete true when scored', allMatchesComplete(bracketDone));
 }
 
 console.log(`\n${failures === 0 ? '🎉 ALL PASSED' : `💥 ${failures} FAILURES`}`);

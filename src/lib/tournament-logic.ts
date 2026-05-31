@@ -218,7 +218,7 @@ export function computeStandings(
   const resolved = new Map<string, TeamWithPlayers>();
   for (const t of teams) resolved.set(t.id, resolveTeam(t, players));
 
-  const acc = new Map<string, Omit<StandingRow, 'rank' | 'label' | 'diff'>>();
+  const acc = new Map<string, Omit<StandingRow, 'rank' | 'label' | 'diff' | 'players'>>();
   for (const t of teams) {
     acc.set(t.id, { team_id: t.id, wins: 0, losses: 0, points_for: 0, points_against: 0 });
   }
@@ -246,12 +246,19 @@ export function computeStandings(
     }
   }
 
-  const rows: StandingRow[] = [...acc.values()].map((r) => ({
-    ...r,
-    label: teamLabel(resolved.get(r.team_id)),
-    diff: r.points_for - r.points_against,
-    rank: 0,
-  }));
+  const rows: StandingRow[] = [...acc.values()].map((r) => {
+    const team = resolved.get(r.team_id);
+    const teamPlayers: Array<{ id: string; name: string }> = [];
+    if (team?.player1) teamPlayers.push({ id: team.player1.id, name: team.player1.name });
+    if (team?.player2) teamPlayers.push({ id: team.player2.id, name: team.player2.name });
+    return {
+      ...r,
+      label: teamLabel(team),
+      players: teamPlayers,
+      diff: r.points_for - r.points_against,
+      rank: 0,
+    };
+  });
 
   rows.sort(
     (x, y) =>
@@ -263,4 +270,54 @@ export function computeStandings(
   rows.forEach((r, i) => (r.rank = i + 1));
 
   return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Completion + champion
+// ---------------------------------------------------------------------------
+
+/** The single final bracket match (highest bracket round), or null. */
+export function finalBracketMatch(matches: Match[]): Match | null {
+  const bracket = matches.filter((m) => isBracketRound(m.round_number));
+  if (bracket.length === 0) return null;
+  const maxRound = Math.max(...bracket.map((m) => m.round_number));
+  const finals = bracket.filter((m) => m.round_number === maxRound);
+  return finals[0] ?? null;
+}
+
+/** Have all playable matches in the tournament been scored? */
+export function allMatchesComplete(matches: Match[]): boolean {
+  const playable = matches.filter((m) => !m.is_bye);
+  return playable.length > 0 && playable.every((m) => m.status === 'completed');
+}
+
+/** Determine the champion once the tournament is decided.
+ *  - Bracket / both: winner of the completed final bracket match.
+ *  - Round robin only: top of the standings, once every match is scored. */
+export function findChampion(
+  teams: Team[],
+  matches: Match[],
+  players: Map<string, Player>,
+): { teamId: string; label: string } | null {
+  const resolvedLabel = (id: string | null): string => {
+    if (!id) return 'TBD';
+    const t = teams.find((tm) => tm.id === id);
+    return t ? teamLabel(resolveTeam(t, players)) : 'TBD';
+  };
+
+  const final = finalBracketMatch(matches);
+  if (final) {
+    if (final.status !== 'completed') return null;
+    if (final.team1_score == null || final.team2_score == null) return null;
+    if (!final.team1_id || !final.team2_id) return null;
+    const teamId = final.team1_score > final.team2_score ? final.team1_id : final.team2_id;
+    return { teamId, label: resolvedLabel(teamId) };
+  }
+
+  // Round-robin only.
+  const rr = matches.filter((m) => !isBracketRound(m.round_number));
+  if (!allMatchesComplete(rr)) return null;
+  const standings = computeStandings(teams, matches, players);
+  if (standings.length === 0) return null;
+  return { teamId: standings[0].team_id, label: standings[0].label };
 }

@@ -19,13 +19,14 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset when a new match opens.
+  // Fully reset modal state whenever the target match changes (including when
+  // it closes). Critically resets `submitting` so a prior successful submit
+  // can't leave the next submission stuck in a loading state.
   useEffect(() => {
-    if (match) {
-      setS1(match.team1_score?.toString() ?? '');
-      setS2(match.team2_score?.toString() ?? '');
-      setError(null);
-    }
+    setS1(match?.team1_score?.toString() ?? '');
+    setS2(match?.team2_score?.toString() ?? '');
+    setError(null);
+    setSubmitting(false);
   }, [match]);
 
   const submit = async () => {
@@ -49,6 +50,7 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
     setSubmitting(true);
     try {
       await onSubmit(match, n1, n2);
+      setSubmitting(false);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not submit score.');

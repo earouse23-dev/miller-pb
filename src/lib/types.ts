@@ -23,6 +23,7 @@ export type Tournament = {
   status: TournamentStatus;
   created_at: string;
   completed_at: string | null;
+  stats_saved: boolean;
 };
 
 export type Team = {
@@ -55,7 +56,22 @@ export type TournamentResult = {
   points_for: number;
   points_against: number;
   rank: number;
+  tournament_wins: number;
 };
+
+export type LifetimeStats = {
+  player_id: string;
+  total_wins: number;
+  total_losses: number;
+  total_points_for: number;
+  total_points_against: number;
+  tournament_wins: number;
+  tournaments_played: number;
+  updated_at: string;
+};
+
+// A leaderboard row: lifetime stats joined with the player's name.
+export type LeaderboardRow = LifetimeStats & { name: string };
 
 // Convenience shape: a team with its resolved player names.
 export type TeamWithPlayers = Team & {
@@ -67,6 +83,8 @@ export type TeamWithPlayers = Team & {
 export interface StandingRow {
   team_id: string;
   label: string;
+  /** Individual players on this team (for tappable names / profiles). */
+  players: Array<{ id: string; name: string }>;
   wins: number;
   losses: number;
   points_for: number;
@@ -142,8 +160,24 @@ export type Database = {
           points_for?: number;
           points_against?: number;
           rank?: number;
+          tournament_wins?: number;
         };
         Update: Partial<TournamentResult>;
+        Relationships: [];
+      };
+      lifetime_stats: {
+        Row: LifetimeStats;
+        Insert: {
+          player_id: string;
+          total_wins?: number;
+          total_losses?: number;
+          total_points_for?: number;
+          total_points_against?: number;
+          tournament_wins?: number;
+          tournaments_played?: number;
+          updated_at?: string;
+        };
+        Update: Partial<LifetimeStats>;
         Relationships: [];
       };
     };

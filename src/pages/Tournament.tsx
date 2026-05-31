@@ -9,10 +9,16 @@ import { RoundSection } from '@/components/tournament/RoundSection';
 import { StandingsTable } from '@/components/tournament/StandingsTable';
 import { ScoreModal } from '@/components/tournament/ScoreModal';
 import { EndTournamentModal } from '@/components/tournament/EndTournamentModal';
-import { TournamentEndedModal } from '@/components/tournament/TournamentEndedModal';
+import { BracketView } from '@/components/tournament/BracketView';
+import { ChampionOverlay } from '@/components/tournament/ChampionOverlay';
+import { PlayerProfileModal } from '@/components/tournament/PlayerProfileModal';
 import { useTournament } from '@/hooks/useTournament';
 import { useTournamentStore } from '@/store/useTournamentStore';
-import { endTournament as endTournamentApi, submitScore } from '@/lib/api';
+import {
+  endTournament as endTournamentApi,
+  saveTournamentResults,
+  submitScore,
+} from '@/lib/api';
 import { isDoubles } from '@/lib/utils';
 import { clearActiveTournament, setActiveTournament } from '@/lib/utils';
 import { toast } from '@/store/useToastStore';
@@ -34,12 +40,15 @@ export function Tournament() {
     progress,
     isHost,
     winnerLabel,
+    hasBracket,
+    champion,
   } = useTournament(id ?? null);
 
   const [tab, setTab] = useState<TournamentTab>('schedule');
   const [scoringMatch, setScoringMatch] = useState<Match | null>(null);
   const [endOpen, setEndOpen] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [profile, setProfile] = useState<{ id: string; name: string } | null>(null);
 
   // Remember this as the active tournament so Home can auto-resume it.
   useEffect(() => {
@@ -65,6 +74,22 @@ export function Tournament() {
     } finally {
       setEnding(false);
     }
+  };
+
+  // Champion overlay — Save records results + lifetime stats (idempotent);
+  // End flips status to completed and broadcasts to all devices.
+  const handleChampionSave = async () => {
+    const bundle = useTournamentStore.getState().bundle;
+    if (!bundle) return;
+    await saveTournamentResults(bundle);
+    await useTournamentStore.getState().refresh();
+  };
+
+  const handleChampionEnd = async () => {
+    const bundle = useTournamentStore.getState().bundle;
+    if (!bundle) return;
+    await endTournamentApi(bundle); // save (guarded) + complete
+    await useTournamentStore.getState().refresh();
   };
 
   const returnHome = () => {
@@ -101,6 +126,9 @@ export function Tournament() {
   const teamHeader = doubles ? 'Team' : 'Player';
   const ended = tournament.status === 'completed';
   const pct = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+  const bracketRounds = rounds.filter((r) => r.isBracket);
+  const rrRounds = rounds.filter((r) => !r.isBracket);
+  const championOpen = Boolean(champion) || ended;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -147,11 +175,43 @@ export function Tournament() {
                 {rounds.length === 0 ? (
                   <LoadingState message="Matches are loading…" />
                 ) : (
-                  <div className="flex flex-col gap-7">
-                    {rounds.map((g) => (
-                      <RoundSection key={g.key} group={g} teams={teams} onScore={setScoringMatch} />
-                    ))}
-                  </div>
+                  <AnimatePresence mode="wait">
+                    {hasBracket ? (
+                      <motion.div
+                        key="bracket"
+                        initial={{ opacity: 0, x: 24 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -24 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        className="flex flex-col gap-5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="label-eyebrow">
+                            {rrRounds.length > 0 ? 'Round robin complete · Bracket' : 'Bracket'}
+                          </span>
+                        </div>
+                        <BracketView
+                          rounds={bracketRounds}
+                          teams={teams}
+                          onScore={setScoringMatch}
+                          championTeamId={champion?.teamId}
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="rr"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, x: -24 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex flex-col gap-7"
+                      >
+                        {rrRounds.map((g) => (
+                          <RoundSection key={g.key} group={g} teams={teams} onScore={setScoringMatch} />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 )}
 
                 {isHost && !ended && (
@@ -167,7 +227,11 @@ export function Tournament() {
                 )}
               </div>
             ) : (
-              <StandingsTable rows={standings} teamHeader={teamHeader} />
+              <StandingsTable
+                rows={standings}
+                teamHeader={teamHeader}
+                onPlayerClick={(pid, name) => setProfile({ id: pid, name })}
+              />
             )}
           </motion.div>
         </AnimatePresence>
@@ -190,7 +254,25 @@ export function Tournament() {
         loading={ending}
       />
 
-      <TournamentEndedModal open={ended} winnerLabel={winnerLabel} onReturnHome={returnHome} />
+      <ChampionOverlay
+        open={championOpen}
+        winnerLabel={champion?.label ?? winnerLabel}
+        standings={standings}
+        code={tournament.invite_code}
+        isHost={isHost}
+        ended={ended}
+        statsSaved={tournament.stats_saved}
+        onSave={handleChampionSave}
+        onEnd={handleChampionEnd}
+        onReturnHome={returnHome}
+      />
+
+      <PlayerProfileModal
+        open={Boolean(profile)}
+        onClose={() => setProfile(null)}
+        playerId={profile?.id ?? null}
+        playerName={profile?.name ?? null}
+      />
     </div>
   );
 }

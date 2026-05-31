@@ -13,8 +13,11 @@ export function useRealtime(tournamentId: string | null): void {
   useEffect(() => {
     if (!tournamentId) return;
 
+    // Unique topic per mount so a remount (e.g. React StrictMode, or navigating
+    // between tournaments) can't collide with a channel that's still tearing
+    // down — which would otherwise leave a stacked/dead subscription.
     const channel = supabase
-      .channel(`tournament:${tournamentId}`)
+      .channel(`tournament:${tournamentId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {

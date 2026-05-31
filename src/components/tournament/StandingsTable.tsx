@@ -6,9 +6,10 @@ import type { StandingRow } from '@/lib/types';
 interface StandingsTableProps {
   rows: StandingRow[];
   teamHeader?: string;
+  onPlayerClick?: (playerId: string, name: string) => void;
 }
 
-export function StandingsTable({ rows, teamHeader = 'Team' }: StandingsTableProps) {
+export function StandingsTable({ rows, teamHeader = 'Team', onPlayerClick }: StandingsTableProps) {
   if (rows.length === 0) {
     return (
       <div className="py-16 text-center text-sm text-content-muted">
@@ -45,7 +46,25 @@ export function StandingsTable({ rows, teamHeader = 'Team' }: StandingsTableProp
                 <span className="font-mono text-sm font-bold text-accent">{r.rank}</span>
               )}
             </div>
-            <div className="truncate font-semibold text-content-primary">{r.label}</div>
+            <div className="truncate font-semibold text-content-primary">
+              {onPlayerClick && r.players.length > 0 ? (
+                <span className="inline-flex items-center gap-1">
+                  {r.players.map((p, i) => (
+                    <span key={p.id} className="inline-flex items-center gap-1">
+                      {i > 0 && <span className="text-content-muted">&</span>}
+                      <button
+                        onClick={() => onPlayerClick(p.id, p.name)}
+                        className="truncate underline decoration-line decoration-dotted underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
+                      >
+                        {p.name}
+                      </button>
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                r.label
+              )}
+            </div>
             <Cell>{r.wins}</Cell>
             <Cell className="text-content-secondary">{r.losses}</Cell>
             <Cell className="text-content-secondary">{r.points_for}</Cell>
