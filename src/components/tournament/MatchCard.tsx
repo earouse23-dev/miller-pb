@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import type { Match, TeamWithPlayers } from '@/lib/types';
 import { teamLabel } from '@/lib/utils';
@@ -16,12 +15,12 @@ export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
   const label1 = teamLabel(team1);
   const label2 = teamLabel(team2);
 
-  // Bye card -------------------------------------------------------------
+  // Bye -----------------------------------------------------------------
   if (match.is_bye) {
     return (
-      <div className="flex items-center justify-between rounded-card border border-line bg-bg-card/60 px-4 py-4">
-        <span className="font-semibold text-content-secondary">{label1}</span>
-        <Badge tone="neutral">Bye</Badge>
+      <div className="flex items-center justify-between rounded-card border border-line bg-surface px-4 py-4 shadow-inset">
+        <span className="text-[15px] font-medium text-content-secondary">{label1}</span>
+        <span className="text-[13px] uppercase italic tracking-[0.06em] text-content-muted">Bye</span>
       </div>
     );
   }
@@ -29,70 +28,77 @@ export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
   const completed = match.status === 'completed';
   const s1 = match.team1_score;
   const s2 = match.team2_score;
-  const team1Won = completed && s1 != null && s2 != null && s1 > s2;
-  const team2Won = completed && s1 != null && s2 != null && s2 > s1;
+  const t1Won = completed && s1 != null && s2 != null && s1 > s2;
+  const t2Won = completed && s1 != null && s2 != null && s2 > s1;
+  const playable = Boolean(match.team1_id && match.team2_id) && !completed;
+  const court = match.court_number;
 
-  // Completed card -------------------------------------------------------
+  const Row = ({ label, score, won, lose }: { label: string; score: number | null; won: boolean; lose: boolean }) => (
+    <div
+      className={cn(
+        'flex items-center justify-between gap-3 border-l-[3px] px-4 py-3.5',
+        won ? 'border-l-accent' : 'border-l-transparent',
+        lose && 'opacity-50',
+      )}
+    >
+      <span className="text-[15px] font-medium text-content-primary">{label}</span>
+      {(completed || score != null) && (
+        <span className="font-display min-w-[30px] text-right text-[28px] leading-none tracking-[0.02em] text-content-primary">
+          {score}
+        </span>
+      )}
+    </div>
+  );
+
+  const inner = (
+    <>
+      <Row label={label1} score={s1} won={t1Won} lose={t2Won} />
+      <div className="flex items-center gap-2.5 px-4 py-1">
+        <span className="h-px flex-1 bg-line" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-content-muted">vs</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+      <Row label={label2} score={s2} won={t2Won} lose={t1Won} />
+      <div className="flex items-center justify-between border-t border-line bg-surface px-4 py-2.5">
+        <span
+          className={cn(
+            'inline-flex h-6 items-center gap-1.5 rounded-pill px-2.5 text-[11px] font-medium uppercase tracking-[0.08em]',
+            completed ? 'bg-surface-2 text-content-secondary' : 'bg-surface-2 text-content-secondary',
+          )}
+        >
+          {completed ? 'Final' : court ? `Court ${court}` : 'Pending'}
+        </span>
+        {playable && (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium tracking-[0.04em] text-accent">
+            Score <ArrowRight className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+    </>
+  );
+
   if (completed) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-card border border-line bg-bg-card px-4 py-4"
+        initial={{ y: 6 }}
+        animate={{ y: 0 }}
+        className="overflow-hidden rounded-card border border-line bg-surface shadow-inset"
       >
-        <div className="flex items-center justify-between gap-3">
-          <span
-            className={cn('flex-1 font-semibold', team1Won ? 'text-content-primary' : 'text-content-secondary')}
-          >
-            {label1}
-          </span>
-          <div className="flex items-center gap-2 font-mono text-lg font-bold">
-            <span className={team1Won ? 'text-accent' : 'text-content-secondary'}>{s1}</span>
-            <span className="text-content-muted">·</span>
-            <span className={team2Won ? 'text-accent' : 'text-content-secondary'}>{s2}</span>
-          </div>
-          <span
-            className={cn(
-              'flex-1 text-right font-semibold',
-              team2Won ? 'text-content-primary' : 'text-content-secondary',
-            )}
-          >
-            {label2}
-          </span>
-        </div>
-        <div className="mt-2 flex justify-center">
-          <Badge tone="success">Final</Badge>
-        </div>
+        {inner}
       </motion.div>
     );
   }
 
-  // Pending card (tap to score) -----------------------------------------
-  const playable = Boolean(match.team1_id && match.team2_id);
   return (
     <button
       onClick={() => playable && onScore(match)}
       disabled={!playable}
       className={cn(
-        'group w-full rounded-card border bg-bg-card px-4 py-4 text-left transition-all duration-200',
-        playable
-          ? 'border-line hover:border-accent/50 hover:bg-bg-card-hover hover:shadow-glow'
-          : 'cursor-default border-line/60 opacity-70',
+        'w-full overflow-hidden rounded-card border bg-surface text-left shadow-inset transition-colors duration-200 ease-smooth',
+        playable ? 'border-line hover:border-content-muted' : 'cursor-default border-line opacity-70',
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex-1 font-semibold text-content-primary">{label1}</span>
-        <span className="text-xs font-bold uppercase tracking-label text-content-muted">vs</span>
-        <span className="flex-1 text-right font-semibold text-content-primary">{label2}</span>
-      </div>
-      <div className="mt-2 flex items-center justify-between">
-        <Badge tone="neutral">Pending</Badge>
-        {playable && (
-          <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-label text-accent animate-pulse-soft">
-            Tap to score <ArrowRight className="h-3.5 w-3.5" />
-          </span>
-        )}
-      </div>
+      {inner}
     </button>
   );
 }

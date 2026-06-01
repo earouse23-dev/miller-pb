@@ -149,8 +149,10 @@ function ProfilePanel({
           <Trophy className="h-6 w-6" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-content-primary">{name ?? 'Player'}</h2>
-          <p className="text-sm text-content-secondary">{s.tournaments_played} tournaments played</p>
+          <h2 className="font-display text-[32px] uppercase leading-none tracking-[0.02em] text-content-primary">
+            {name ?? 'Player'}
+          </h2>
+          <p className="text-[13px] text-content-secondary">{s.tournaments_played} tournaments played</p>
         </div>
       </div>
 
@@ -197,9 +199,9 @@ function Stat({
         ? 'text-danger'
         : 'text-content-primary';
   return (
-    <div className="rounded-input border border-line bg-bg-card p-3">
-      <p className="label-eyebrow">{label}</p>
-      <p className={cn('mt-1 font-mono text-2xl font-bold', color)}>{value}</p>
+    <div className="rounded-input border border-line bg-surface p-3 shadow-inset">
+      <p className="eyebrow">{label}</p>
+      <p className={cn('font-display mt-1 text-[28px] tracking-[0.02em]', color)}>{value}</p>
     </div>
   );
 }

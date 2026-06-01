@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Card } from '@/components/ui/Card';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface OptionCardProps {
   icon: ReactNode;
@@ -9,44 +10,41 @@ interface OptionCardProps {
   onSelect: () => void;
 }
 
-/** Full-width selectable card with a lime radio dot, used across create steps. */
+/** One-decision option row: icon tile + title/desc + accent checkmark. */
 export function OptionCard({ icon, title, description, selected, onSelect }: OptionCardProps) {
   return (
-    <Card
-      interactive
-      selected={selected}
+    <button
       onClick={onSelect}
       role="radio"
       aria-checked={selected}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      className="flex items-center gap-4 p-4"
+      className={cn(
+        'flex min-h-[64px] w-full items-center gap-3.5 rounded-card border p-3.5 text-left',
+        'transition-colors duration-200 ease-smooth active:scale-[0.99]',
+        selected ? 'border-accent bg-surface-2' : 'border-line bg-surface hover:border-content-muted',
+      )}
     >
-      <div
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-input transition-colors ${
-          selected ? 'bg-accent/15 text-accent' : 'bg-bg-secondary text-content-secondary'
-        }`}
+      <span
+        className={cn(
+          'grid h-10 w-10 shrink-0 place-items-center rounded-sm transition-colors',
+          selected ? 'bg-accent-dim text-accent' : 'bg-surface-2 text-content-secondary',
+        )}
       >
         {icon}
-      </div>
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="font-bold text-content-primary">{title}</p>
-        <p className="text-sm text-content-secondary">{description}</p>
-      </div>
+      <span className="flex-1">
+        <span className="block font-display text-[20px] tracking-[0.03em] text-content-primary">{title}</span>
+        <span className="block text-[13px] text-content-secondary">{description}</span>
+      </span>
 
       <span
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          selected ? 'border-accent' : 'border-line'
-        }`}
+        className={cn(
+          'grid h-6 w-6 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors',
+          selected ? 'border-accent bg-accent text-ink' : 'border-line text-transparent',
+        )}
       >
-        {selected && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+        <Check className={cn('h-3.5 w-3.5 transition-opacity', selected ? 'opacity-100' : 'opacity-0')} strokeWidth={3} />
       </span>
-    </Card>
+    </button>
   );
 }

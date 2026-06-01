@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-import { Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StandingRow } from '@/lib/types';
 
@@ -12,86 +10,84 @@ interface StandingsTableProps {
 export function StandingsTable({ rows, teamHeader = 'Team', onPlayerClick }: StandingsTableProps) {
   if (rows.length === 0) {
     return (
-      <div className="py-16 text-center text-sm text-content-muted">
+      <div className="py-16 text-center text-[14px] text-content-muted">
         Standings will appear once matches are scored.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-line bg-bg-card">
-      {/* Header */}
-      <div className="grid grid-cols-[28px_1fr_28px_28px_36px_36px_48px] gap-2 border-b border-line px-3 py-2.5 sm:grid-cols-[32px_1fr_32px_32px_44px_44px_56px] sm:px-4">
-        <HeaderCell>#</HeaderCell>
-        <HeaderCell className="text-left">{teamHeader}</HeaderCell>
-        <HeaderCell>W</HeaderCell>
-        <HeaderCell>L</HeaderCell>
-        <HeaderCell>PF</HeaderCell>
-        <HeaderCell>PA</HeaderCell>
-        <HeaderCell>Diff</HeaderCell>
-      </div>
-
-      <div>
-        {rows.map((r) => (
-          <motion.div
-            key={r.team_id}
-            layout
-            transition={{ type: 'spring', stiffness: 400, damping: 36 }}
-            className="grid grid-cols-[28px_1fr_28px_28px_36px_36px_48px] items-center gap-2 border-b border-line/50 px-3 py-3 last:border-b-0 sm:grid-cols-[32px_1fr_32px_32px_44px_44px_56px] sm:px-4"
-          >
-            <div className="flex items-center justify-center">
-              {r.rank === 1 ? (
-                <Trophy className="h-4 w-4 text-accent" />
-              ) : (
-                <span className="font-mono text-sm font-bold text-accent">{r.rank}</span>
-              )}
-            </div>
-            <div className="truncate font-semibold text-content-primary">
-              {onPlayerClick && r.players.length > 0 ? (
-                <span className="inline-flex items-center gap-1">
-                  {r.players.map((p, i) => (
-                    <span key={p.id} className="inline-flex items-center gap-1">
-                      {i > 0 && <span className="text-content-muted">&</span>}
-                      <button
-                        onClick={() => onPlayerClick(p.id, p.name)}
-                        className="truncate underline decoration-line decoration-dotted underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
-                      >
-                        {p.name}
-                      </button>
-                    </span>
-                  ))}
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="font-mono text-[11px] uppercase tracking-[0.1em] text-content-muted">
+          <th className="w-6 pb-3 text-left font-normal">#</th>
+          <th className="w-[99%] pb-3 pl-2 text-left font-normal">{teamHeader}</th>
+          <th className="pb-3 pl-2.5 text-right font-normal">W</th>
+          <th className="pb-3 pl-2.5 text-right font-normal">L</th>
+          <th className="pb-3 pl-2.5 text-right font-normal">Diff</th>
+          <th className="pb-3 pl-2.5 text-right font-normal">PF</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => {
+          const top = r.rank <= 2;
+          const isDoubles = r.players.length > 1;
+          return (
+            <tr key={r.team_id} className="border-t border-line text-[14px]">
+              <td className="py-3.5 text-left">
+                <span className={cn('font-display text-[18px]', top ? 'text-accent' : 'text-content-muted')}>
+                  {r.rank}
                 </span>
-              ) : (
-                r.label
-              )}
-            </div>
-            <Cell>{r.wins}</Cell>
-            <Cell className="text-content-secondary">{r.losses}</Cell>
-            <Cell className="text-content-secondary">{r.points_for}</Cell>
-            <Cell className="text-content-secondary">{r.points_against}</Cell>
-            <Cell
-              className={cn(
-                'font-bold',
-                r.diff > 0 ? 'text-success' : r.diff < 0 ? 'text-danger' : 'text-content-muted',
-              )}
-            >
-              {r.diff > 0 ? `+${r.diff}` : r.diff}
-            </Cell>
-          </motion.div>
-        ))}
-      </div>
-    </div>
+              </td>
+              <td className="py-3.5 pl-2 pr-3 text-left">
+                {onPlayerClick && r.players.length > 0 ? (
+                  isDoubles ? (
+                    <>
+                      <div className="font-medium text-content-primary">{r.label}</div>
+                      <div className="mt-0.5 text-[12px] text-content-secondary">
+                        {r.players.map((p, i) => (
+                          <span key={p.id}>
+                            {i > 0 && <span className="text-content-muted"> · </span>}
+                            <button
+                              onClick={() => onPlayerClick(p.id, p.name)}
+                              className="underline decoration-line decoration-dotted underline-offset-2 transition-colors hover:text-accent hover:decoration-accent"
+                            >
+                              {p.name}
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => onPlayerClick(r.players[0].id, r.players[0].name)}
+                      className="font-medium text-content-primary underline decoration-line decoration-dotted underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
+                    >
+                      {r.label}
+                    </button>
+                  )
+                ) : (
+                  <span className="font-medium text-content-primary">{r.label}</span>
+                )}
+              </td>
+              <td className="py-3.5 pl-2.5 text-right">{r.wins}</td>
+              <td className="py-3.5 pl-2.5 text-right text-content-secondary">{r.losses}</td>
+              <td
+                className={cn(
+                  'py-3.5 pl-2.5 text-right font-mono',
+                  r.diff > 0 ? 'text-accent' : r.diff < 0 ? 'text-content-muted' : 'text-content-secondary',
+                )}
+              >
+                {r.diff >= 0 ? '+' : ''}
+                {r.diff}
+              </td>
+              <td className="font-display py-3.5 pl-2.5 text-right text-[20px] tracking-[0.02em] text-accent">
+                {r.points_for}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
-}
-
-function HeaderCell({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn('text-center text-[10px] font-bold uppercase tracking-label text-content-muted', className)}>
-      {children}
-    </div>
-  );
-}
-
-function Cell({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('text-center font-mono text-sm text-content-primary', className)}>{children}</div>;
 }

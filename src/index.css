@@ -3,21 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #080d14;
-  --bg-secondary: #0f1923;
-  --bg-card: #141f2e;
-  --bg-card-hover: #1a2840;
-  --accent: #c8f060;
-  --accent-dark: #9bbf3a;
-  --text-primary: #ffffff;
-  --text-secondary: #8a9bb0;
-  --text-muted: #4a5a6a;
-  --border: #1e2d40;
-  --border-accent: #c8f060;
-  --error: #ff5757;
+  /* palette — strict (design v2) */
+  --bg: #0a0c10;
+  --surface: #12151c;
+  --surface-2: #1a1e28;
+  --accent: #4ade80;
+  --accent-dark: #3fbf6e;
+  --accent-dim: #1a3d2a;
+  --text: #f0f4f8;
+  --muted: #6b7a8d;
+  --faint: #46505e;
+  --border: #1e2330;
+  --danger: #f87171;
+  --danger-dim: #3a1e22;
+  --ink: #0a0c10;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t: 220ms;
+  --inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* aliases kept so older references resolve to the new system */
+  --bg-primary: #0a0c10;
+  --bg-secondary: #12151c;
+  --bg-card: #12151c;
+  --bg-card-hover: #1a1e28;
+  --text-primary: #f0f4f8;
+  --text-secondary: #6b7a8d;
+  --text-muted: #46505e;
+  --error: #f87171;
   --success: #4ade80;
-  --court1: #c8f060;
-  --court2: #5ba3f0;
+  --court1: #4ade80;
+  --court2: #6b7a8d;
 }
 
 * {
@@ -32,9 +48,9 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
@@ -47,8 +63,16 @@ body {
 }
 
 @layer components {
+  /* athletic display type */
+  .font-display {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.02em;
+  }
+
+  .eyebrow,
   .label-eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-label text-content-muted;
+    @apply text-[11px] font-medium uppercase text-content-secondary;
+    letter-spacing: 0.16em;
   }
 
   /* Hide number input spinners across browsers */
@@ -63,25 +87,44 @@ body {
   }
 }
 
-/* Ambient radial glow used on hero/background */
-.bg-ambient {
-  background-image:
-    radial-gradient(60% 50% at 50% 0%, rgba(200, 240, 96, 0.08) 0%, rgba(8, 13, 20, 0) 70%),
-    radial-gradient(40% 40% at 100% 100%, rgba(91, 163, 240, 0.06) 0%, rgba(8, 13, 20, 0) 70%);
+/* Subtle diagonal app texture — 3% (replaces ambient glow backdrops) */
+.bg-ambient,
+.app-texture {
+  position: relative;
+}
+.bg-ambient::before,
+.app-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 11px,
+    rgba(255, 255, 255, 0.03) 11px,
+    rgba(255, 255, 255, 0.03) 12px
+  );
+}
+.bg-ambient > *,
+.app-texture > * {
+  position: relative;
+  z-index: 1;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — thin, restrained */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2d40;
-  border-radius: 8px;
+  background: #1e2330;
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a3f5a;
+  background: #2a3142;
 }

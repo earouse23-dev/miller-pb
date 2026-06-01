@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Plus, AlertTriangle } from 'lucide-react';
+import { Check, UserPlus, AlertTriangle } from 'lucide-react';
 import { StepShell } from './StepShell';
-import { Input } from '@/components/ui/Input';
+import { Input, Field } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import type { Player } from '@/lib/types';
 
@@ -13,6 +14,16 @@ interface PlayerStepProps {
   onToggle: (id: string) => void;
   onAddPlayer: (name: string) => Promise<void>;
   isDoubles: boolean;
+}
+
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 }
 
 export function PlayerStep({ players, selected, onToggle, onAddPlayer, isDoubles }: PlayerStepProps) {
@@ -37,31 +48,64 @@ export function PlayerStep({ players, selected, onToggle, onAddPlayer, isDoubles
   };
 
   return (
-    <StepShell
-      label="Players"
-      heading="Who's playing?"
-      subtext={
-        <span>
-          {count} selected · need at least {isDoubles ? '4 (even)' : '2'}.
+    <StepShell label="Players" heading="Who's playing?">
+      {/* sticky count */}
+      <div className="sticky top-0 z-[5] -mt-1 flex items-center justify-between bg-bg-primary pb-3">
+        <span className="text-[13px] font-medium text-content-secondary">
+          {count} player{count === 1 ? '' : 's'} selected
         </span>
-      }
-    >
-      <div className="flex flex-col gap-3">
+        <Badge tone="accent">Min {isDoubles ? '4 · even' : 2}</Badge>
+      </div>
+
+      {oddForDoubles && (
+        <div className="flex items-center gap-2 rounded-input border border-danger/40 bg-danger-dim px-3 py-2 text-[13px] text-danger">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Doubles needs an even number of players.
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2.5">
+        {players.length === 0 && (
+          <p className="py-6 text-center text-[14px] text-content-muted">
+            No players yet. Add your first one below.
+          </p>
+        )}
+        <AnimatePresence initial={false}>
+          {players.map((p) => {
+            const isSel = selected.has(p.id);
+            return (
+              <motion.button
+                key={p.id}
+                layout
+                initial={{ y: 6 }}
+                animate={{ y: 0 }}
+                onClick={() => onToggle(p.id)}
+                className={cn(
+                  'flex min-h-[64px] items-center gap-3.5 rounded-card border px-4 py-3 text-left transition-colors',
+                  isSel ? 'border-accent bg-surface' : 'border-line bg-surface hover:border-content-muted',
+                )}
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-surface-2 text-[13px] font-medium text-content-primary">
+                  {initials(p.name)}
+                </span>
+                <span className="flex-1 text-[15px] font-medium text-content-primary">{p.name}</span>
+                <span
+                  className={cn(
+                    'grid h-6 w-6 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors',
+                    isSel ? 'border-accent bg-accent text-ink' : 'border-line text-transparent',
+                  )}
+                >
+                  <Check className={cn('h-3.5 w-3.5', isSel ? 'opacity-100' : 'opacity-0')} strokeWidth={3} />
+                </span>
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
+
         {/* Add player */}
-        <div>
-          {!adding ? (
-            <button
-              onClick={() => setAdding(true)}
-              className="flex items-center gap-2 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
-            >
-              <Plus className="h-4 w-4" /> Add player
-            </button>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="flex items-center gap-2"
-            >
+        {adding ? (
+          <div className="rounded-card border border-line bg-surface p-5 shadow-inset">
+            <Field label="Player name">
               <Input
                 autoFocus
                 value={name}
@@ -73,61 +117,41 @@ export function PlayerStep({ players, selected, onToggle, onAddPlayer, isDoubles
                     setName('');
                   }
                 }}
-                placeholder="Player name"
+                placeholder="e.g. Jordan Miller"
                 maxLength={40}
               />
-              <Button size="md" onClick={submitNew} loading={busy} disabled={!name.trim()}>
+            </Field>
+            <div className="mt-3 flex gap-3">
+              <Button
+                variant="secondary"
+                size="md"
+                className="flex-1"
+                onClick={() => {
+                  setAdding(false);
+                  setName('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button size="md" className="flex-1" onClick={submitNew} loading={busy} disabled={!name.trim()}>
                 Add
               </Button>
-            </motion.div>
-          )}
-        </div>
-
-        {oddForDoubles && (
-          <div className="flex items-center gap-2 rounded-input border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            Doubles needs an even number of players.
+            </div>
           </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex min-h-[64px] items-center gap-3.5 rounded-card border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-content-muted"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-sm bg-surface-2 text-content-secondary">
+              <UserPlus className="h-5 w-5" />
+            </span>
+            <span className="flex-1">
+              <span className="block font-display text-[20px] tracking-[0.03em] text-content-primary">Add Player</span>
+              <span className="block text-[13px] text-content-secondary">Invite someone new</span>
+            </span>
+          </button>
         )}
-
-        {/* Player list */}
-        <div className="flex flex-col gap-2">
-          {players.length === 0 && (
-            <p className="py-6 text-center text-sm text-content-muted">
-              No players yet. Add your first one above.
-            </p>
-          )}
-          <AnimatePresence initial={false}>
-            {players.map((p) => {
-              const isSel = selected.has(p.id);
-              return (
-                <motion.button
-                  key={p.id}
-                  layout
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={() => onToggle(p.id)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-input border px-4 py-3 text-left transition-colors',
-                    isSel
-                      ? 'border-accent/50 bg-accent/[0.06]'
-                      : 'border-line bg-bg-card hover:bg-bg-card-hover',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
-                      isSel ? 'border-accent bg-accent text-bg-primary' : 'border-line',
-                    )}
-                  >
-                    {isSel && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                  </span>
-                  <span className="font-medium text-content-primary">{p.name}</span>
-                </motion.button>
-              );
-            })}
-          </AnimatePresence>
-        </div>
       </div>
     </StepShell>
   );

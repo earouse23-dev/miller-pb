@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
 import type { Match, TeamWithPlayers } from '@/lib/types';
 import { teamLabel } from '@/lib/utils';
 
@@ -19,9 +19,7 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fully reset modal state whenever the target match changes (including when
-  // it closes). Critically resets `submitting` so a prior successful submit
-  // can't leave the next submission stuck in a loading state.
+  // Fully reset modal state whenever the target match changes (incl. close).
   useEffect(() => {
     setS1(match?.team1_score?.toString() ?? '');
     setS2(match?.team2_score?.toString() ?? '');
@@ -29,11 +27,13 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
     setSubmitting(false);
   }, [match]);
 
+  const n1 = Number(s1);
+  const n2 = Number(s2);
+  const lead1 = s1 !== '' && s2 !== '' && n1 > n2;
+  const lead2 = s1 !== '' && s2 !== '' && n2 > n1;
+
   const submit = async () => {
     if (!match || submitting) return;
-    const n1 = Number(s1);
-    const n2 = Number(s2);
-
     if (s1 === '' || s2 === '' || Number.isNaN(n1) || Number.isNaN(n2)) {
       setError('Enter a score for both teams.');
       return;
@@ -46,7 +46,6 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
       setError('Scores can’t be equal — there must be a winner.');
       return;
     }
-
     setSubmitting(true);
     try {
       await onSubmit(match, n1, n2);
@@ -59,25 +58,17 @@ export function ScoreModal({ match, team1, team2, onClose, onSubmit }: ScoreModa
   };
 
   return (
-    <Modal open={Boolean(match)} onClose={onClose} variant="scale" dismissable={!submitting}>
-      <p className="label-eyebrow">Enter Score</p>
-
-      <div className="mt-5 flex flex-col gap-4">
-        <ScoreField label={teamLabel(team1)} value={s1} onChange={setS1} autoFocus />
-        <div className="text-center text-xs font-bold uppercase tracking-label text-content-muted">vs</div>
-        <ScoreField label={teamLabel(team2)} value={s2} onChange={setS2} />
+    <Modal open={Boolean(match)} onClose={onClose} variant="slide-up" title="Score Match" dismissable={!submitting}>
+      <div className="flex flex-col gap-3">
+        <ScoreField label={teamLabel(team1)} value={s1} onChange={setS1} lead={lead1} autoFocus />
+        <ScoreField label={teamLabel(team2)} value={s2} onChange={setS2} lead={lead2} />
       </div>
 
-      {error && <p className="mt-3 text-center text-sm font-medium text-danger">{error}</p>}
+      {error && <p className="mt-3 text-center text-[13px] font-medium text-danger">{error}</p>}
 
-      <div className="mt-6 flex items-center justify-end gap-3">
-        <Button variant="secondary" onClick={onClose} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button onClick={submit} loading={submitting}>
-          Submit Score <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button fullWidth className="mt-5" onClick={submit} loading={submitting}>
+        Submit Score
+      </Button>
     </Modal>
   );
 }
@@ -86,16 +77,23 @@ function ScoreField({
   label,
   value,
   onChange,
+  lead,
   autoFocus,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  lead: boolean;
   autoFocus?: boolean;
 }) {
   return (
-    <div>
-      <p className="mb-2 text-center font-bold text-content-primary">{label}</p>
+    <div
+      className={cn(
+        'rounded-card border bg-surface p-5 shadow-inset transition-colors',
+        lead ? 'border-accent' : 'border-line',
+      )}
+    >
+      <p className="font-display text-[22px] tracking-[0.03em] text-content-primary">{label}</p>
       <input
         autoFocus={autoFocus}
         type="number"
@@ -104,7 +102,7 @@ function ScoreField({
         placeholder="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="no-spinner h-16 w-full rounded-input border border-line bg-bg-secondary text-center text-3xl font-bold text-content-primary placeholder:text-content-muted focus:border-accent focus:shadow-glow focus:outline-none"
+        className="no-spinner font-display mt-2 h-16 w-full rounded-input border border-line bg-surface-2 text-center text-[56px] leading-none text-content-primary placeholder:text-content-muted focus:border-accent focus:outline-none"
       />
     </div>
   );

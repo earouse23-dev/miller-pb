@@ -5,26 +5,33 @@ interface SpinnerProps {
   className?: string;
 }
 
-/** Lime ring spinner. */
+/** Accent ring spinner. */
 export function Spinner({ size = 28, className }: SpinnerProps) {
   return (
     <span
-      className={cn('inline-block animate-spin rounded-full border-[3px]', className)}
+      className={cn('inline-block animate-spin rounded-full border-[2.5px]', className)}
       style={{
         width: size,
         height: size,
-        borderColor: 'rgba(200,240,96,0.18)',
+        borderColor: 'rgba(74,222,128,0.22)',
         borderTopColor: 'var(--accent)',
       }}
     />
   );
 }
 
-export function LoadingState({ message = 'Matches are loading…' }: { message?: string }) {
+/** Pulsing skeleton block (design prefers skeletons over spinners for content). */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse-soft rounded-input bg-surface-2', className)} />;
+}
+
+export function LoadingState({ message }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <Spinner size={36} />
-      <p className="text-sm font-medium text-content-secondary">{message}</p>
+    <div className="flex flex-col gap-3 py-6">
+      <Skeleton className="h-[72px] w-full" />
+      <Skeleton className="h-[72px] w-full" />
+      <Skeleton className="h-[72px] w-full" />
+      {message && <p className="mt-1 text-[13px] text-content-secondary">{message}</p>}
     </div>
   );
 }

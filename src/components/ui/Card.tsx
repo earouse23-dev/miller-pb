@@ -11,11 +11,10 @@ export function Card({ selected, interactive, className, children, ...props }: C
   return (
     <div
       className={cn(
-        'rounded-card bg-bg-card border transition-all duration-200',
-        interactive && 'cursor-pointer hover:bg-bg-card-hover',
-        selected
-          ? 'border-accent bg-accent/[0.06] shadow-glow'
-          : 'border-line hover:border-content-muted/40',
+        'rounded-card border bg-surface shadow-inset transition-colors duration-200 ease-smooth',
+        interactive && 'cursor-pointer hover:bg-surface-2',
+        selected ? 'border-accent bg-surface-2' : 'border-line',
+        interactive && !selected && 'hover:border-content-muted',
         className,
       )}
       {...props}

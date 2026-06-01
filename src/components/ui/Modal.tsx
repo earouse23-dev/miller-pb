@@ -8,26 +8,16 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
-  /** 'slide-up' for bottom-anchored sheets, 'scale' for centered dialogs. */
+  /** 'slide-up' for bottom sheets (drag handle), 'scale' for centered dialogs. */
   variant?: 'slide-up' | 'scale';
   showClose?: boolean;
+  /** Centered title shown in the sheet header (slide-up only). */
+  title?: string;
   className?: string;
-  /** When false, clicking the backdrop / pressing Esc won't close. */
   dismissable?: boolean;
 }
 
-const panelVariants = {
-  'slide-up': {
-    initial: { y: 40, opacity: 0, scale: 0.98 },
-    animate: { y: 0, opacity: 1, scale: 1 },
-    exit: { y: 40, opacity: 0, scale: 0.98 },
-  },
-  scale: {
-    initial: { scale: 0.92, opacity: 0 },
-    animate: { scale: 1, opacity: 1 },
-    exit: { scale: 0.92, opacity: 0 },
-  },
-};
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function Modal({
   open,
@@ -35,6 +25,7 @@ export function Modal({
   children,
   variant = 'scale',
   showClose = true,
+  title,
   className,
   dismissable = true,
 }: ModalProps) {
@@ -51,43 +42,76 @@ export function Modal({
     };
   }, [open, onClose, dismissable]);
 
+  const isSheet = variant === 'slide-up';
+
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+          className={cn(
+            'fixed inset-0 z-50 flex justify-center p-0 sm:p-4',
+            isSheet ? 'items-end sm:items-center' : 'items-center',
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
+          transition={{ duration: 0.18, ease: EASE }}
         >
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => dismissable && onClose()}
-          />
+          <div className="absolute inset-0 bg-black/60" onClick={() => dismissable && onClose()} />
+
           <motion.div
             role="dialog"
             aria-modal="true"
             className={cn(
-              'relative z-10 w-full max-w-md rounded-card border border-line bg-bg-card p-6 shadow-card',
+              'relative z-10 flex w-full flex-col border border-line bg-surface shadow-inset',
+              isSheet
+                ? 'max-h-[85vh] rounded-t-[20px] px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3 sm:max-w-md sm:rounded-[20px]'
+                : 'max-w-md rounded-card p-5',
               className,
             )}
-            variants={panelVariants[variant]}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            initial={isSheet ? { y: 24, scale: 0.98, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={isSheet ? { y: 24, scale: 0.98, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+            transition={{ duration: isSheet ? 0.18 : 0.18, ease: EASE }}
           >
-            {showClose && dismissable && (
+            {isSheet && (
+              <>
+                <span className="mx-auto mb-3.5 h-1 w-9 shrink-0 rounded-full bg-[#2A2E3A]" />
+                {(title || (showClose && dismissable)) && (
+                  <div className="mb-3.5 grid grid-cols-[40px_1fr_40px] items-center">
+                    <span />
+                    {title && (
+                      <span className="font-display text-center text-2xl uppercase tracking-[0.04em] text-content-primary">
+                        {title}
+                      </span>
+                    )}
+                    {showClose && dismissable ? (
+                      <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        className="grid h-10 w-10 place-items-center justify-self-end rounded-full text-content-secondary transition-colors hover:bg-surface-2 hover:text-content-primary"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {!isSheet && showClose && dismissable && (
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="absolute right-4 top-4 text-content-muted transition-colors hover:text-content-primary"
+                className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full text-content-secondary transition-colors hover:bg-surface-2 hover:text-content-primary"
               >
                 <X className="h-5 w-5" />
               </button>
             )}
-            {children}
+
+            <div className={cn(isSheet && 'overflow-y-auto')}>{children}</div>
           </motion.div>
         </motion.div>
       )}

@@ -2,49 +2,43 @@ import { cn } from '@/lib/utils';
 
 interface BrandProps {
   className?: string;
-  showText?: boolean;
+  /** Stack alignment. */
+  align?: 'center' | 'left';
   size?: 'sm' | 'md' | 'lg';
 }
 
-const ringSizes = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-14 w-14' };
-const iconSizes = { sm: 18, md: 22, lg: 30 };
+const sizes = {
+  sm: { miller: 'text-[22px]', pickle: 'text-[8px] tracking-[0.34em]', mark: 'h-[9px] w-[9px]', gap: 'gap-[7px]' },
+  md: { miller: 'text-[34px]', pickle: 'text-[10px] tracking-[0.40em]', mark: 'h-3 w-3', gap: 'gap-2.5' },
+  lg: { miller: 'text-[52px]', pickle: 'text-[12px] tracking-[0.42em]', mark: 'h-[14px] w-[14px]', gap: 'gap-2.5' },
+};
 
-/** Green circle with a pickleball paddle glyph + wordmark. */
-export function Brand({ className, showText = true, size = 'md' }: BrandProps) {
+/** Wordmark: green dot mark + "MILLER" (Bebas) over tracked "PICKLEBALL". */
+export function Brand({ className, align = 'center', size = 'md' }: BrandProps) {
+  const s = sizes[size];
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <div
+    <div
+      className={cn(
+        'inline-flex flex-col gap-0.5',
+        align === 'center' ? 'items-center' : 'items-start',
+        className,
+      )}
+    >
+      <div className={cn('inline-flex items-center', s.gap)}>
+        <span className={cn('shrink-0 rounded-full bg-accent', s.mark)} />
+        <span className={cn('font-display leading-[0.9] tracking-[0.08em] text-content-primary', s.miller)}>
+          Miller
+        </span>
+      </div>
+      <span
         className={cn(
-          'flex shrink-0 items-center justify-center rounded-full bg-accent shadow-glow',
-          ringSizes[size],
+          'font-medium uppercase text-content-secondary',
+          s.pickle,
+          align === 'center' && 'pl-[0.42em]',
         )}
       >
-        <PaddleIcon size={iconSizes[size]} />
-      </div>
-      {showText && (
-        <span className="text-[13px] font-extrabold uppercase leading-none tracking-label text-content-primary">
-          Miller
-          <br />
-          Pickleball
-        </span>
-      )}
+        Pickleball
+      </span>
     </div>
-  );
-}
-
-function PaddleIcon({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <ellipse cx="14.5" cy="13" rx="6.8" ry="7.8" fill="#080D14" />
-      <rect x="12.9" y="19" width="3.2" height="8" rx="1.6" fill="#080D14" />
-      <g fill="#C8F060">
-        <circle cx="11.5" cy="10.5" r="1.05" />
-        <circle cx="15.5" cy="10" r="1.05" />
-        <circle cx="13" cy="13.4" r="1.05" />
-        <circle cx="17" cy="13.4" r="1.05" />
-        <circle cx="11.6" cy="15.6" r="1.05" />
-        <circle cx="15.6" cy="16" r="1.05" />
-      </g>
-    </svg>
   );
 }

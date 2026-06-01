@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X } from 'lucide-react';
-import { Brand } from '@/components/layout/Brand';
+import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { FormatStep } from '@/components/create/FormatStep';
@@ -13,6 +12,8 @@ import { addPlayer, createTournament, fetchPlayers } from '@/lib/api';
 import { getUserIdentity, isDoubles, setActiveTournament } from '@/lib/utils';
 import { toast } from '@/store/useToastStore';
 import type { MatchType, Player, TournamentFormat } from '@/lib/types';
+
+const STEP_TITLES = ['Format', 'Match Type', 'Players', 'Teams'];
 
 export function Create() {
   const navigate = useNavigate();
@@ -80,6 +81,10 @@ export function Create() {
     setStep((s) => Math.min(s + 1, totalSteps));
   };
   const goBack = () => {
+    if (step === 1) {
+      navigate('/');
+      return;
+    }
     setDir(-1);
     setStep((s) => Math.max(s - 1, 1));
   };
@@ -126,35 +131,32 @@ export function Create() {
     <div className="min-h-screen bg-ambient">
       {/* Top bar: progress + close */}
       <div className="sticky top-0 z-20 border-b border-line bg-bg-primary/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center gap-4 px-4 py-3">
-          <button
-            onClick={() => navigate('/')}
-            aria-label="Cancel"
-            className="text-content-muted transition-colors hover:text-content-primary"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="flex flex-1 items-center gap-1.5">
-            {Array.from({ length: totalSteps }).map((_, i) => (
-              <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  initial={false}
-                  animate={{ width: i < step ? '100%' : '0%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            ))}
+        <div className="mx-auto max-w-lg px-5 pt-3 pb-3">
+          <div className="grid grid-cols-[44px_1fr_44px] items-center">
+            <button
+              onClick={goBack}
+              aria-label="Back"
+              className="grid h-11 w-11 place-items-center rounded-full text-content-primary transition-colors hover:bg-surface"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="font-display text-center text-2xl uppercase tracking-[0.04em] text-content-primary">
+              {STEP_TITLES[step - 1]}
+            </span>
+            <span />
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-label text-content-muted">
-            {step}/{totalSteps}
-          </span>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-2">
+            <motion.div
+              className="h-full rounded-full bg-accent"
+              initial={false}
+              animate={{ width: `${(step / totalSteps) * 100}%` }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
-        <Brand size="sm" className="mb-6" />
-
+      <div className="mx-auto max-w-lg px-5 pb-32 pt-6">
         <div className="relative">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
@@ -190,23 +192,15 @@ export function Create() {
       </div>
 
       {/* Sticky footer nav */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg-primary/90 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          {step > 1 ? (
-            <Button variant="secondary" onClick={goBack} disabled={creating}>
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
-          ) : (
-            <span />
-          )}
-
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg-primary/90 px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md">
+        <div className="mx-auto max-w-lg">
           {isLastStep ? (
-            <Button onClick={handleCreate} loading={creating} disabled={!canAdvance()}>
-              Create tournament <ArrowRight className="h-4 w-4" />
+            <Button fullWidth onClick={handleCreate} loading={creating} disabled={!canAdvance()}>
+              Create Tournament
             </Button>
           ) : (
-            <Button onClick={goNext} disabled={!canAdvance()}>
-              Next <ArrowRight className="h-4 w-4" />
+            <Button fullWidth onClick={goNext} disabled={!canAdvance()}>
+              Next
             </Button>
           )}
         </div>

@@ -12,6 +12,7 @@ import { EndTournamentModal } from '@/components/tournament/EndTournamentModal';
 import { BracketView } from '@/components/tournament/BracketView';
 import { ChampionOverlay } from '@/components/tournament/ChampionOverlay';
 import { PlayerProfileModal } from '@/components/tournament/PlayerProfileModal';
+import { CourtDisplay } from '@/components/tournament/CourtDisplay';
 import { useTournament } from '@/hooks/useTournament';
 import { useTournamentStore } from '@/store/useTournamentStore';
 import {
@@ -49,6 +50,7 @@ export function Tournament() {
   const [endOpen, setEndOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [profile, setProfile] = useState<{ id: string; name: string } | null>(null);
+  const [castOpen, setCastOpen] = useState(false);
 
   // Remember this as the active tournament so Home can auto-resume it.
   useEffect(() => {
@@ -132,7 +134,11 @@ export function Tournament() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header inviteCode={tournament.invite_code} role={isHost ? 'host' : 'participant'} />
+      <Header
+        inviteCode={tournament.invite_code}
+        role={isHost ? 'host' : 'participant'}
+        onCast={() => setCastOpen(true)}
+      />
 
       {/* Desktop tabs */}
       <div className="mx-auto hidden w-full max-w-3xl px-4 pt-4 sm:block">
@@ -149,26 +155,22 @@ export function Tournament() {
             transition={{ duration: 0.18 }}
           >
             {tab === 'schedule' ? (
-              <div className="flex flex-col gap-5">
-                {/* Progress + court legend */}
-                <div className="flex flex-col gap-3 rounded-card border border-line bg-bg-card p-4">
+              <div className="flex flex-col gap-6">
+                {/* Progress */}
+                <div className="rounded-card border border-line bg-surface p-4 shadow-inset">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-content-primary">
-                      {progress.completed} of {progress.total} matches complete
+                    <span className="text-[13px] font-medium text-content-secondary">
+                      {progress.completed} of {progress.total} matches done
                     </span>
-                    <span className="font-mono text-sm font-bold text-accent">{pct}%</span>
+                    <span className="font-display text-[22px] tracking-[0.02em] text-accent">{pct}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-bg-secondary">
+                  <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-2">
                     <motion.div
-                      className="h-full rounded-full bg-accent shadow-glow"
+                      className="h-full rounded-full bg-accent"
                       initial={false}
                       animate={{ width: `${pct}%` }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+                      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                     />
-                  </div>
-                  <div className="flex items-center gap-4 pt-0.5">
-                    <LegendDot color="var(--court1)" label="Court 1" />
-                    <LegendDot color="var(--court2)" label="Court 2" />
                   </div>
                 </div>
 
@@ -273,6 +275,14 @@ export function Tournament() {
         playerId={profile?.id ?? null}
         playerName={profile?.name ?? null}
       />
+
+      <CourtDisplay
+        open={castOpen}
+        onClose={() => setCastOpen(false)}
+        code={tournament.invite_code}
+        matches={matches}
+        teams={teams}
+      />
     </div>
   );
 }
@@ -291,7 +301,7 @@ function DesktopTabs({ tab, onChange }: { tab: TournamentTab; onChange: (t: Tour
             key={it.id}
             onClick={() => onChange(it.id)}
             className={cn(
-              'relative pb-3 text-sm font-semibold transition-colors',
+              'font-display relative pb-3 text-[18px] uppercase tracking-[0.05em] transition-colors',
               active ? 'text-content-primary' : 'text-content-muted hover:text-content-secondary',
             )}
           >
@@ -306,14 +316,5 @@ function DesktopTabs({ tab, onChange }: { tab: TournamentTab; onChange: (t: Tour
         );
       })}
     </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-label text-content-secondary">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
   );
 }

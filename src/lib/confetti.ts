@@ -1,8 +1,8 @@
 import confetti from 'canvas-confetti';
 
-const ACCENT = '#C8F060';
-const ACCENT_DARK = '#9BBF3A';
-const WHITE = '#FFFFFF';
+const ACCENT = '#4ADE80';
+const ACCENT_DARK = '#3FBF6E';
+const WHITE = '#F0F4F8';
 
 /** Celebratory burst used when a tournament ends. */
 export function fireConfetti(): void {
