@@ -19,6 +19,18 @@ interface ModalProps {
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Ref-counted body scroll lock so overlapping/sequential modals never leave
+// the page stuck at `overflow: hidden` (which makes the screen feel "trapped").
+let scrollLockCount = 0;
+function lockScroll() {
+  if (scrollLockCount === 0) document.body.style.overflow = 'hidden';
+  scrollLockCount += 1;
+}
+function unlockScroll() {
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) document.body.style.overflow = '';
+}
+
 export function Modal({
   open,
   onClose,
@@ -35,10 +47,10 @@ export function Modal({
       if (e.key === 'Escape' && dismissable) onClose();
     };
     window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
+      unlockScroll();
     };
   }, [open, onClose, dismissable]);
 

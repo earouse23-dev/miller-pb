@@ -13,6 +13,9 @@ interface PlayerProfileModalProps {
   onClose: () => void;
   playerId: string | null;
   playerName: string | null;
+  /** Hide the in-modal Leaderboard tab (used from the dedicated Leaderboard
+   *  screen, where closing returns to the leaderboard). */
+  profileOnly?: boolean;
 }
 
 type Tab = 'profile' | 'leaderboard';
@@ -22,7 +25,13 @@ function winRate(wins: number, losses: number): number {
   return total === 0 ? 0 : Math.round((wins / total) * 100);
 }
 
-export function PlayerProfileModal({ open, onClose, playerId, playerName }: PlayerProfileModalProps) {
+export function PlayerProfileModal({
+  open,
+  onClose,
+  playerId,
+  playerName,
+  profileOnly = false,
+}: PlayerProfileModalProps) {
   const [tab, setTab] = useState<Tab>('profile');
   const [activeId, setActiveId] = useState<string | null>(playerId);
   const [activeName, setActiveName] = useState<string | null>(playerName);
@@ -63,8 +72,9 @@ export function PlayerProfileModal({ open, onClose, playerId, playerName }: Play
 
   return (
     <Modal open={open} onClose={onClose} variant="slide-up" className="max-w-lg">
-      {/* Tabs */}
-      <div className="mb-5 flex gap-6 border-b border-line">
+      {/* Tabs (hidden when used as a standalone profile, e.g. from the
+          Leaderboard screen — there, closing returns to the leaderboard). */}
+      <div className={cn('mb-5 flex gap-6 border-b border-line', profileOnly && 'hidden')}>
         {(['profile', 'leaderboard'] as Tab[]).map((t) => (
           <button
             key={t}
@@ -141,6 +151,8 @@ function ProfilePanel({
     updated_at: '',
   };
   const diff = s.total_points_for - s.total_points_against;
+  const matches = s.total_wins + s.total_losses;
+  const avgDiff = matches === 0 ? 0 : Math.round((diff / matches) * 10) / 10;
 
   return (
     <div>
@@ -167,6 +179,8 @@ function ProfilePanel({
         <Stat label="Win rate" value={`${winRate(s.total_wins, s.total_losses)}%`} accent />
         <Stat label="Match wins" value={s.total_wins} />
         <Stat label="Match losses" value={s.total_losses} />
+        <Stat label="Matches played" value={matches} />
+        <Stat label="Avg diff / match" value={`${avgDiff > 0 ? '+' : ''}${avgDiff}`} tone={avgDiff > 0 ? 'success' : avgDiff < 0 ? 'danger' : 'muted'} />
         <Stat label="Points for" value={s.total_points_for} />
         <Stat label="Points against" value={s.total_points_against} />
         <Stat
@@ -174,7 +188,7 @@ function ProfilePanel({
           value={`${diff > 0 ? '+' : ''}${diff}`}
           tone={diff > 0 ? 'success' : diff < 0 ? 'danger' : 'muted'}
         />
-        <Stat label="Tournaments" value={s.tournaments_played} />
+        <Stat label="Tournaments played" value={s.tournaments_played} />
       </div>
     </div>
   );

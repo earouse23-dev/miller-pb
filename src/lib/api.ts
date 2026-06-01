@@ -287,25 +287,37 @@ export async function submitScore(
 // ---------------------------------------------------------------------------
 // "Both" format: generate the bracket once the round robin completes.
 // ---------------------------------------------------------------------------
+// In-flight guard: a second caller (React StrictMode double-effect, or a
+// realtime-triggered re-render before the first insert lands) must not generate
+// the bracket again — that produced a duplicated bracket. This guards the
+// trigger only; the generation algorithm is unchanged.
+const bracketGenerationInFlight = new Set<string>();
+
 export async function generateSeededBracket(
   bundle: TournamentBundle,
 ): Promise<void> {
   const { tournament, teams, matches, players } = bundle;
   if (tournament.format !== 'both') return;
 
-  // Already generated?
+  // Already generated, or generation already running for this tournament?
   if (matches.some((m) => isBracketRound(m.round_number))) return;
+  if (bracketGenerationInFlight.has(tournament.id)) return;
 
   // All round-robin matches complete?
   const rr = matches.filter((m) => !isBracketRound(m.round_number));
   if (rr.length === 0 || rr.some((m) => m.status !== 'completed')) return;
 
-  const playerMap = new Map(players.map((p) => [p.id, p]));
-  const standings = computeStandings(teams, matches, playerMap);
-  const seededTeamIds = standings.map((s) => s.team_id);
+  bracketGenerationInFlight.add(tournament.id);
+  try {
+    const playerMap = new Map(players.map((p) => [p.id, p]));
+    const standings = computeStandings(teams, matches, playerMap);
+    const seededTeamIds = standings.map((s) => s.team_id);
 
-  const generated = generateBracket(seededTeamIds);
-  await insertMatches(tournament.id, generated);
+    const generated = generateBracket(seededTeamIds);
+    await insertMatches(tournament.id, generated);
+  } finally {
+    bracketGenerationInFlight.delete(tournament.id);
+  }
 }
 
 export const BRACKET_ROUND_BASE = BRACKET_BASE;

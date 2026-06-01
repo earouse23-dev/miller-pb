@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Home } from '@/pages/Home';
 import { Create } from '@/pages/Create';
 import { Tournament } from '@/pages/Tournament';
+import { Leaderboard } from '@/pages/Leaderboard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastViewport } from '@/components/ui/Toast';
 import { LoadingState } from '@/components/ui/Spinner';
@@ -40,6 +41,16 @@ function AnimatedRoutes() {
             <PageTransition>
               <ErrorBoundary>
                 <Create />
+              </ErrorBoundary>
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <PageTransition>
+              <ErrorBoundary>
+                <Leaderboard />
               </ErrorBoundary>
             </PageTransition>
           }

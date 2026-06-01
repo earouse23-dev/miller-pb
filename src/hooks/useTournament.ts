@@ -76,7 +76,16 @@ export function useTournament(id: string | null): UseTournamentResult {
   const rounds = useMemo<RoundGroup[]>(() => {
     if (!bundle) return [];
     const byRound = new Map<number, Match[]>();
+    // Defensively drop duplicate bracket matchups (same round + same two teams):
+    // a single-elim bracket never has two such matches, so any duplicate is a
+    // stray row that would otherwise render the bracket twice.
+    const seenBracketSig = new Set<string>();
     for (const m of bundle.matches) {
+      if (isBracketRound(m.round_number) && m.team1_id && m.team2_id) {
+        const sig = `${m.round_number}|${m.team1_id}|${m.team2_id}`;
+        if (seenBracketSig.has(sig)) continue;
+        seenBracketSig.add(sig);
+      }
       const arr = byRound.get(m.round_number) ?? [];
       arr.push(m);
       byRound.set(m.round_number, arr);

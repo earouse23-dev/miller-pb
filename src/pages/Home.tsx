@@ -7,6 +7,7 @@ import { JoinModal } from '@/components/JoinModal';
 import { fetchTournamentById } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { clearActiveTournament, getActiveTournamentId } from '@/lib/utils';
+import { useTournamentStore } from '@/store/useTournamentStore';
 import { SetupNotice } from '@/components/SetupNotice';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -15,6 +16,12 @@ export function Home() {
   const navigate = useNavigate();
   const [joinOpen, setJoinOpen] = useState(false);
   const [checking, setChecking] = useState(true);
+
+  // Clear any leftover live-tournament state when we land on Home. This keeps
+  // the store from holding a stale bundle after a tournament ends (Bug 2).
+  useEffect(() => {
+    useTournamentStore.getState().reset();
+  }, []);
 
   // Auto-resume an active tournament saved on this device.
   useEffect(() => {
@@ -71,6 +78,14 @@ export function Home() {
           >
             <Button fullWidth variant="secondary" disabled={checking} onClick={() => setJoinOpen(true)}>
               Join Tournament
+            </Button>
+          </motion.div>
+          <motion.div
+            variants={{ hidden: { y: 8 }, show: { y: 0 } }}
+            transition={{ duration: 0.22, ease: EASE }}
+          >
+            <Button fullWidth variant="ghost" onClick={() => navigate('/leaderboard')}>
+              Leaderboard
             </Button>
           </motion.div>
         </motion.div>

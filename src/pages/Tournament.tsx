@@ -95,9 +95,12 @@ export function Tournament() {
   };
 
   const returnHome = () => {
+    // Clear the saved session, then navigate. We deliberately do NOT reset the
+    // store synchronously here: doing so re-renders this still-mounted (exiting)
+    // page into a null-bundle state mid-transition, which can stall the router's
+    // AnimatePresence and leave a blank screen. Home resets the store on mount.
     clearActiveTournament();
-    useTournamentStore.getState().reset();
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   // ---- States ----------------------------------------------------------
