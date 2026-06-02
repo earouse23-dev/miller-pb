@@ -61,7 +61,7 @@ export function JoinModal({ open, onClose }: JoinModalProps) {
   const focusIdx = Math.min(code.length, LEN - 1);
 
   return (
-    <Modal open={open} onClose={onClose} variant="scale" dismissable={!loading}>
+    <Modal open={open} onClose={onClose} variant="scale" align="top" dismissable={!loading}>
       <div className="flex flex-col gap-2">
         <h2 className="font-display pr-10 text-3xl uppercase tracking-[0.03em] text-content-primary">Join Tournament</h2>
         <label className="mt-1 text-[13px] font-medium text-content-secondary">Invite code</label>

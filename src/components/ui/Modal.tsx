@@ -15,6 +15,9 @@ interface ModalProps {
   title?: string;
   className?: string;
   dismissable?: boolean;
+  /** 'scale' dialogs only: anchor near the top on mobile (clears the keyboard /
+   *  bottom buttons) instead of vertically centering. */
+  align?: 'center' | 'top';
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -40,6 +43,7 @@ export function Modal({
   title,
   className,
   dismissable = true,
+  align = 'center',
 }: ModalProps) {
   // Keep latest onClose/dismissable in refs so the lock effect can depend ONLY
   // on `open`. Otherwise an inline onClose from a frequently re-rendering parent
@@ -95,7 +99,11 @@ export function Modal({
         <motion.div
           className={cn(
             'fixed inset-0 z-50 flex justify-center p-0 transition-[padding] duration-200 ease-out sm:p-4',
-            isSheet ? 'items-end sm:items-center' : 'items-center',
+            isSheet
+              ? 'items-end sm:items-center'
+              : align === 'top'
+                ? 'items-start sm:items-center'
+                : 'items-center',
           )}
           // Lift the sheet above the soft keyboard when one is open.
           style={keyboardInset > 0 ? { paddingBottom: keyboardInset } : undefined}
@@ -118,6 +126,7 @@ export function Modal({
               isSheet
                 ? 'max-h-[85vh] rounded-t-[20px] px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3 sm:max-w-md sm:rounded-[20px]'
                 : 'max-w-md rounded-card p-5',
+              !isSheet && align === 'top' && 'mt-[10vh] sm:mt-0',
               className,
             )}
             initial={isSheet ? { y: 24, scale: 0.98, opacity: 0 } : { scale: 0.95, opacity: 0 }}
