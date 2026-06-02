@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Trophy, Medal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Spinner';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { PlayerProfileModal } from '@/components/tournament/PlayerProfileModal';
 import { fetchLeaderboard } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -14,6 +15,9 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Gold / silver / bronze for the top three.
 const MEDALS = ['#F5C84B', '#C4CCD6', '#CD7F4A'];
+// Matching spotlight tints for the podium; everyone else gets brand green.
+const MEDAL_GLOW = ['rgba(245,200,75,0.22)', 'rgba(196,204,214,0.20)', 'rgba(205,127,74,0.22)'];
+const GREEN_GLOW = 'rgba(74,222,128,0.16)';
 
 function winRate(wins: number, losses: number): number {
   const total = wins + losses;
@@ -98,15 +102,27 @@ export function Leaderboard() {
             {ranked.map((r, i) => {
               const rate = winRate(r.total_wins, r.total_losses);
               const medal = i < 3 ? MEDALS[i] : null;
+              const open = () => setProfile({ id: r.player_id, name: r.name });
               return (
-                <motion.button
+                <motion.div
                   key={r.player_id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.22, ease: EASE, delay: Math.min(i, 5) * 0.04 }}
-                  onClick={() => setProfile({ id: r.player_id, name: r.name })}
-                  className="flex items-center gap-3.5 rounded-card border border-line bg-surface p-3.5 text-left shadow-inset transition-colors hover:border-content-muted"
                 >
+                  <SpotlightCard
+                    spotlightColor={i < 3 ? MEDAL_GLOW[i] : GREEN_GLOW}
+                    role="button"
+                    tabIndex={0}
+                    onClick={open}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        open();
+                      }
+                    }}
+                    className="flex cursor-pointer items-center gap-3.5 p-3.5 text-left"
+                  >
                   {/* Rank / medal */}
                   <span
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-full border"
@@ -141,7 +157,8 @@ export function Leaderboard() {
                       Win rate
                     </span>
                   </span>
-                </motion.button>
+                  </SpotlightCard>
+                </motion.div>
               );
             })}
           </div>
