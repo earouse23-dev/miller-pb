@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Home } from '@/pages/Home';
 import { Create } from '@/pages/Create';
 import { Tournament } from '@/pages/Tournament';
@@ -9,12 +9,18 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastViewport } from '@/components/ui/Toast';
 import { LoadingState } from '@/components/ui/Spinner';
 
+// Enter-only transition. We deliberately do NOT animate route *exits* via a
+// route-level AnimatePresence mode="wait": the Tournament page nests several
+// AnimatePresence trees (tab content, RR/bracket swap, champion overlay), and
+// when the whole page exits at once framer's wait-for-exit can deadlock — the
+// new page never mounts and you're left staring at the body background (the
+// "black page" on Return to Home). Mounting the next page immediately and only
+// animating it *in* removes that entire failure class.
 function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
       {children}
@@ -23,10 +29,8 @@ function PageTransition({ children }: { children: React.ReactNode }) {
 }
 
 function AnimatedRoutes() {
-  const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <Routes>
         <Route
           path="/"
           element={
@@ -74,7 +78,6 @@ function AnimatedRoutes() {
           }
         />
       </Routes>
-    </AnimatePresence>
   );
 }
 

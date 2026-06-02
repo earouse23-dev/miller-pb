@@ -8,8 +8,61 @@
 // top seeds; the full bracket (all rounds) is generated up front and winners
 // advance into later-round slots as scores come in.
 
-import type { Match, Player, StandingRow, Team, TeamWithPlayers } from './types';
+import type { GameFormat, GameScore, Match, Player, StandingRow, Team, TeamWithPlayers } from './types';
 import { resolveTeam, teamLabel } from './utils';
+
+// ---------------------------------------------------------------------------
+// Best-of helpers
+// ---------------------------------------------------------------------------
+
+/** Games a team must win to take the match for a given format. */
+export function gamesToWin(format: GameFormat): number {
+  return format === 'best_of_5' ? 3 : format === 'best_of_3' ? 2 : 1;
+}
+
+/** Total games in a format (the max that could be played). */
+export function totalGames(format: GameFormat): number {
+  return format === 'best_of_5' ? 5 : format === 'best_of_3' ? 3 : 1;
+}
+
+/** Roll up per-game scores into points + games won for each side. */
+export function summarizeGames(games: GameScore[]): {
+  team1Points: number;
+  team2Points: number;
+  team1Games: number;
+  team2Games: number;
+} {
+  let team1Points = 0;
+  let team2Points = 0;
+  let team1Games = 0;
+  let team2Games = 0;
+  for (const g of games) {
+    team1Points += g.a;
+    team2Points += g.b;
+    if (g.a > g.b) team1Games += 1;
+    else if (g.b > g.a) team2Games += 1;
+  }
+  return { team1Points, team2Points, team1Games, team2Games };
+}
+
+/** Which side won a completed match. Decided by games won; falls back to raw
+ *  points for legacy/single-game rows where games columns are 0. */
+export function matchWinnerSide(
+  m: Pick<Match, 'team1_games' | 'team2_games' | 'team1_score' | 'team2_score'>,
+): 'team1' | 'team2' | null {
+  const g1 = m.team1_games ?? 0;
+  const g2 = m.team2_games ?? 0;
+  if (g1 !== g2) return g1 > g2 ? 'team1' : 'team2';
+  if (m.team1_score != null && m.team2_score != null && m.team1_score !== m.team2_score) {
+    return m.team1_score > m.team2_score ? 'team1' : 'team2';
+  }
+  return null;
+}
+
+/** True once a best-of match has a multi-game result worth showing as games. */
+export function isMultiGame(m: Pick<Match, 'team1_games' | 'team2_games'>): boolean {
+  return (m.team1_games ?? 0) + (m.team2_games ?? 0) > 1;
+}
 
 /** Bracket rounds are offset so they never collide with round-robin round
  *  numbers in the "both" format. round_number >= BRACKET_BASE => bracket. */
@@ -237,10 +290,13 @@ export function computeStandings(
     b.points_for += m.team2_score;
     b.points_against += m.team1_score;
 
-    if (m.team1_score > m.team2_score) {
+    // Win/loss is decided by games won (majority), not raw points: in a best-of
+    // match a team can score more total points yet still lose the match.
+    const winner = matchWinnerSide(m);
+    if (winner === 'team1') {
       a.wins += 1;
       b.losses += 1;
-    } else if (m.team2_score > m.team1_score) {
+    } else if (winner === 'team2') {
       b.wins += 1;
       a.losses += 1;
     }
@@ -308,9 +364,10 @@ export function findChampion(
   const final = finalBracketMatch(matches);
   if (final) {
     if (final.status !== 'completed') return null;
-    if (final.team1_score == null || final.team2_score == null) return null;
     if (!final.team1_id || !final.team2_id) return null;
-    const teamId = final.team1_score > final.team2_score ? final.team1_id : final.team2_id;
+    const winner = matchWinnerSide(final);
+    if (!winner) return null;
+    const teamId = winner === 'team1' ? final.team1_id : final.team2_id;
     return { teamId, label: resolvedLabel(teamId) };
   }
 

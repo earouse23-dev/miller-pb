@@ -22,9 +22,10 @@ import {
 } from '@/lib/api';
 import { isDoubles } from '@/lib/utils';
 import { clearActiveTournament, setActiveTournament } from '@/lib/utils';
+import { isBracketRound } from '@/lib/tournament-logic';
 import { toast } from '@/store/useToastStore';
 import { cn } from '@/lib/utils';
-import type { Match } from '@/lib/types';
+import type { GameFormat, GameScore, Match } from '@/lib/types';
 
 export function Tournament() {
   const { id } = useParams<{ id: string }>();
@@ -57,8 +58,8 @@ export function Tournament() {
     if (tournament && tournament.status === 'active') setActiveTournament(tournament.id);
   }, [tournament]);
 
-  const handleSubmitScore = async (match: Match, s1: number, s2: number) => {
-    await submitScore(match, s1, s2, matches);
+  const handleSubmitScore = async (match: Match, games: GameScore[]) => {
+    await submitScore(match, games, matches);
     // Reflect immediately (incl. bracket advancement); realtime syncs others.
     await useTournamentStore.getState().refresh();
   };
@@ -134,6 +135,14 @@ export function Tournament() {
   const bracketRounds = rounds.filter((r) => r.isBracket);
   const rrRounds = rounds.filter((r) => !r.isBracket);
   const championOpen = Boolean(champion) || ended;
+
+  // Scoring config for the match being scored. The format depends on which
+  // phase the match is in (round robin vs bracket); legacy rows fall back to a
+  // single game to 11.
+  const scoreTarget = tournament.score_target ?? 11;
+  const scoringFormat: GameFormat = scoringMatch
+    ? (isBracketRound(scoringMatch.round_number) ? tournament.bracket_format : tournament.rr_format) ?? 'single'
+    : 'single';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -248,6 +257,8 @@ export function Tournament() {
         match={scoringMatch}
         team1={scoringMatch?.team1_id ? teams.get(scoringMatch.team1_id) : undefined}
         team2={scoringMatch?.team2_id ? teams.get(scoringMatch.team2_id) : undefined}
+        target={scoreTarget}
+        format={scoringFormat}
         onClose={() => setScoringMatch(null)}
         onSubmit={handleSubmitScore}
       />

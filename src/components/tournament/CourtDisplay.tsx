@@ -3,7 +3,7 @@ import { Minimize2 } from 'lucide-react';
 import { Brand } from '@/components/layout/Brand';
 import { Badge } from '@/components/ui/Badge';
 import { cn, teamLabel } from '@/lib/utils';
-import { isBracketRound } from '@/lib/tournament-logic';
+import { isBracketRound, matchWinnerSide } from '@/lib/tournament-logic';
 import type { Match, TeamWithPlayers } from '@/lib/types';
 
 interface CourtDisplayProps {
@@ -96,8 +96,10 @@ function CourtPanel({
   const t2 = match?.team2_id ? teams.get(match.team2_id) : undefined;
   const s1 = match?.team1_score ?? 0;
   const s2 = match?.team2_score ?? 0;
-  const lead1 = s1 > s2;
-  const lead2 = s2 > s1;
+  // For a finished best-of match the winner is decided by games, not points.
+  const winner = match && match.status === 'completed' ? matchWinnerSide(match) : null;
+  const lead1 = winner ? winner === 'team1' : s1 > s2;
+  const lead2 = winner ? winner === 'team2' : s2 > s1;
   const live = match?.status === 'pending';
 
   return (

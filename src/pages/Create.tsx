@@ -5,15 +5,16 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { FormatStep } from '@/components/create/FormatStep';
+import { ScoringStep } from '@/components/create/ScoringStep';
 import { MatchTypeStep } from '@/components/create/MatchTypeStep';
 import { PlayerStep } from '@/components/create/PlayerStep';
 import { TeamStep } from '@/components/create/TeamStep';
 import { addPlayer, createTournament, fetchPlayers } from '@/lib/api';
 import { getUserIdentity, isDoubles, setActiveTournament } from '@/lib/utils';
 import { toast } from '@/store/useToastStore';
-import type { MatchType, Player, TournamentFormat } from '@/lib/types';
+import type { GameFormat, MatchType, Player, ScoreTarget, TournamentFormat } from '@/lib/types';
 
-const STEP_TITLES = ['Format', 'Match Type', 'Players', 'Teams'];
+const STEP_TITLES = ['Format', 'Scoring', 'Match Type', 'Players', 'Teams'];
 
 export function Create() {
   const navigate = useNavigate();
@@ -22,6 +23,9 @@ export function Create() {
   const [dir, setDir] = useState(1);
 
   const [format, setFormat] = useState<TournamentFormat | null>(null);
+  const [scoreTarget, setScoreTarget] = useState<ScoreTarget | null>(null);
+  const [rrFormat, setRrFormat] = useState<GameFormat | null>(null);
+  const [bracketFormat, setBracketFormat] = useState<GameFormat | null>(null);
   const [matchType, setMatchType] = useState<MatchType | null>(null);
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -32,7 +36,7 @@ export function Create() {
 
   const doubles = matchType ? isDoubles(matchType) : false;
   const needsTeamStep = matchType === 'doubles_fixed';
-  const totalSteps = needsTeamStep ? 4 : 3;
+  const totalSteps = needsTeamStep ? 5 : 4;
 
   useEffect(() => {
     fetchPlayers()
@@ -64,15 +68,24 @@ export function Create() {
     }
   };
 
+  const scoringComplete = (): boolean => {
+    if (scoreTarget == null) return false;
+    if (format === 'round_robin') return rrFormat != null;
+    if (format === 'bracket') return bracketFormat != null;
+    if (format === 'both') return rrFormat != null && bracketFormat != null;
+    return false;
+  };
+
   const canAdvance = (): boolean => {
     if (step === 1) return format !== null;
-    if (step === 2) return matchType !== null;
-    if (step === 3) {
+    if (step === 2) return scoringComplete();
+    if (step === 3) return matchType !== null;
+    if (step === 4) {
       const n = selected.size;
       if (doubles) return n >= 4 && n % 2 === 0;
       return n >= 2;
     }
-    if (step === 4) return fixedTeams.length * 2 === selected.size && selected.size >= 4;
+    if (step === 5) return fixedTeams.length * 2 === selected.size && selected.size >= 4;
     return false;
   };
 
@@ -108,7 +121,7 @@ export function Create() {
   };
 
   const handleCreate = async () => {
-    if (!format || !matchType || creating) return;
+    if (!format || !matchType || !scoreTarget || creating) return;
     setCreating(true);
     try {
       const tournament = await createTournament({
@@ -116,6 +129,10 @@ export function Create() {
         matchType,
         hostIdentity: getUserIdentity(),
         teams: buildTeams(),
+        scoreTarget,
+        // Only persist a format for phases this structure actually has.
+        rrFormat: format === 'bracket' ? null : rrFormat,
+        bracketFormat: format === 'round_robin' ? null : bracketFormat,
       });
       setActiveTournament(tournament.id);
       navigate(`/tournament/${tournament.id}`);
@@ -168,8 +185,19 @@ export function Create() {
               transition={{ duration: 0.22, ease: 'easeOut' }}
             >
               {step === 1 && <FormatStep value={format} onChange={setFormat} />}
-              {step === 2 && <MatchTypeStep value={matchType} onChange={setMatchType} />}
-              {step === 3 &&
+              {step === 2 && (
+                <ScoringStep
+                  structure={format ?? 'round_robin'}
+                  target={scoreTarget}
+                  onTargetChange={setScoreTarget}
+                  rrFormat={rrFormat}
+                  onRrFormatChange={setRrFormat}
+                  bracketFormat={bracketFormat}
+                  onBracketFormatChange={setBracketFormat}
+                />
+              )}
+              {step === 3 && <MatchTypeStep value={matchType} onChange={setMatchType} />}
+              {step === 4 &&
                 (playersLoading ? (
                   <div className="flex justify-center py-16">
                     <Spinner size={32} />
@@ -183,7 +211,7 @@ export function Create() {
                     isDoubles={doubles}
                   />
                 ))}
-              {step === 4 && (
+              {step === 5 && (
                 <TeamStep selectedPlayers={selectedPlayers} onChange={setFixedTeams} />
               )}
             </motion.div>

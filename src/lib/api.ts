@@ -8,10 +8,14 @@ import {
   generateBracket,
   generateRoundRobin,
   isBracketRound,
+  matchWinnerSide,
   nextBracketSlot,
+  summarizeGames,
   type GeneratedMatch,
 } from './tournament-logic';
 import type {
+  GameFormat,
+  GameScore,
   LeaderboardRow,
   LifetimeStats,
   Match,
@@ -29,6 +33,12 @@ export interface CreateTournamentParams {
   hostIdentity: string;
   /** Each team is one player (singles) or two players (doubles). */
   teams: Array<[string] | [string, string]>;
+  /** Points each game is played to (11 | 15 | 21). */
+  scoreTarget: number;
+  /** Game format for the round-robin phase (null when there is none). */
+  rrFormat: GameFormat | null;
+  /** Game format for the bracket phase (null when there is none). */
+  bracketFormat: GameFormat | null;
 }
 
 function throwOn<T>(res: { data: T | null; error: { message: string } | null }): T {
@@ -66,6 +76,9 @@ async function insertMatches(tournamentId: string, generated: GeneratedMatch[]):
       team2_id: m.team2_id,
       team1_score: null,
       team2_score: null,
+      team1_games: 0,
+      team2_games: 0,
+      games: null,
       is_bye: m.is_bye,
       status: m.status,
       created_at: new Date(base + m.order * 5).toISOString(),
@@ -88,6 +101,9 @@ export async function createTournament(
         format: params.format,
         match_type: params.matchType,
         status: 'active',
+        score_target: params.scoreTarget,
+        rr_format: params.rrFormat,
+        bracket_format: params.bracketFormat,
       })
       .select()
       .single(),
@@ -249,26 +265,38 @@ export async function fetchBundle(tournamentId: string): Promise<TournamentBundl
 // ---------------------------------------------------------------------------
 export async function submitScore(
   match: Match,
-  team1Score: number,
-  team2Score: number,
+  games: GameScore[],
   allMatches: Match[],
 ): Promise<void> {
+  const { team1Points, team2Points, team1Games, team2Games } = summarizeGames(games);
+
   const { error } = await supabase
     .from('matches')
-    .update({ team1_score: team1Score, team2_score: team2Score, status: 'completed' })
+    .update({
+      team1_score: team1Points,
+      team2_score: team2Points,
+      team1_games: team1Games,
+      team2_games: team2Games,
+      games,
+      status: 'completed',
+    })
     .eq('id', match.id);
   if (error) throw new Error(error.message);
 
   // Advance the winner in a bracket.
   if (isBracketRound(match.round_number) && match.team1_id && match.team2_id) {
-    const winnerTeamId = team1Score > team2Score ? match.team1_id : match.team2_id;
-    const bracketMatches = allMatches.filter((m) => isBracketRound(m.round_number));
     const completedView: Match = {
       ...match,
-      team1_score: team1Score,
-      team2_score: team2Score,
+      team1_score: team1Points,
+      team2_score: team2Points,
+      team1_games: team1Games,
+      team2_games: team2Games,
+      games,
       status: 'completed',
     };
+    const winnerSide = matchWinnerSide(completedView);
+    const winnerTeamId = winnerSide === 'team2' ? match.team2_id : match.team1_id;
+    const bracketMatches = allMatches.filter((m) => isBracketRound(m.round_number));
     const next = nextBracketSlot(bracketMatches, completedView, winnerTeamId);
     if (next) {
       const update =

@@ -5,6 +5,13 @@ export type MatchType = 'singles' | 'doubles_fixed' | 'doubles_random';
 export type TournamentStatus = 'active' | 'completed';
 export type MatchStatus = 'pending' | 'completed';
 
+// How many points a single game is played to.
+export type ScoreTarget = 11 | 15 | 21;
+// How many games decide a match. `single` = one game; best-of needs a majority.
+export type GameFormat = 'single' | 'best_of_3' | 'best_of_5';
+// One game's points: `a` for team1, `b` for team2.
+export type GameScore = { a: number; b: number };
+
 // NOTE: these are `type` aliases (not interfaces) on purpose — object-literal
 // types carry an implicit index signature, which the Supabase `GenericTable`
 // constraint (Row extends Record<string, unknown>) requires. Interfaces don't.
@@ -24,6 +31,12 @@ export type Tournament = {
   created_at: string;
   completed_at: string | null;
   stats_saved: boolean;
+  /** Points a game is played to. Null on legacy rows (treat as 11). */
+  score_target: number | null;
+  /** Game format for the round-robin phase. Null when not applicable/legacy. */
+  rr_format: GameFormat | null;
+  /** Game format for the bracket phase. Null when not applicable/legacy. */
+  bracket_format: GameFormat | null;
 };
 
 export type Team = {
@@ -40,8 +53,15 @@ export type Match = {
   court_number: number | null;
   team1_id: string | null;
   team2_id: string | null;
+  /** Total points across all games (sum of game `a` / `b`). Drives PF/diff. */
   team1_score: number | null;
   team2_score: number | null;
+  /** Games won by each team. Decides the match winner (majority). 1/0 for a
+   *  single-game match. Null/0 on legacy rows — fall back to points. */
+  team1_games: number | null;
+  team2_games: number | null;
+  /** Per-game scores, for re-display/editing. Null on legacy rows. */
+  games: GameScore[] | null;
   is_bye: boolean;
   status: MatchStatus;
   created_at: string;
@@ -121,6 +141,9 @@ export type Database = {
           status?: TournamentStatus;
           created_at?: string;
           completed_at?: string | null;
+          score_target?: number | null;
+          rr_format?: GameFormat | null;
+          bracket_format?: GameFormat | null;
         };
         Update: Partial<Tournament>;
         Relationships: [];
@@ -142,6 +165,9 @@ export type Database = {
           team2_id?: string | null;
           team1_score?: number | null;
           team2_score?: number | null;
+          team1_games?: number | null;
+          team2_games?: number | null;
+          games?: GameScore[] | null;
           is_bye?: boolean;
           status?: MatchStatus;
           created_at?: string;

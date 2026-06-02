@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isMultiGame, matchWinnerSide } from '@/lib/tournament-logic';
 import type { Match, TeamWithPlayers } from '@/lib/types';
 import { teamLabel } from '@/lib/utils';
 
@@ -26,12 +27,17 @@ export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
   }
 
   const completed = match.status === 'completed';
-  const s1 = match.team1_score;
-  const s2 = match.team2_score;
-  const t1Won = completed && s1 != null && s2 != null && s1 > s2;
-  const t2Won = completed && s1 != null && s2 != null && s2 > s1;
+  const multi = isMultiGame(match);
+  // Headline = games won for best-of, total points for a single game.
+  const s1 = completed ? (multi ? match.team1_games : match.team1_score) : match.team1_score;
+  const s2 = completed ? (multi ? match.team2_games : match.team2_score) : match.team2_score;
+  const winner = completed ? matchWinnerSide(match) : null;
+  const t1Won = winner === 'team1';
+  const t2Won = winner === 'team2';
   const playable = Boolean(match.team1_id && match.team2_id) && !completed;
   const court = match.court_number;
+  const gamesDetail =
+    completed && multi && match.games ? match.games.map((g) => `${g.a}–${g.b}`).join('  ') : null;
 
   const Row = ({ label, score, won, lose }: { label: string; score: number | null; won: boolean; lose: boolean }) => (
     <div
@@ -68,6 +74,9 @@ export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
         >
           {completed ? 'Final' : court ? `Court ${court}` : 'Pending'}
         </span>
+        {gamesDetail && (
+          <span className="font-mono text-[11px] tracking-[0.04em] text-content-muted">{gamesDetail}</span>
+        )}
         {playable && (
           <span className="inline-flex items-center gap-1 text-[12px] font-medium tracking-[0.04em] text-accent">
             Score <ArrowRight className="h-4 w-4" />
