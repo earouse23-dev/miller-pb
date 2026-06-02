@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Brand } from '@/components/layout/Brand';
 import { Button } from '@/components/ui/Button';
+import { AuroraBackground } from '@/components/ui/aurora-background';
 import { JoinPanel } from '@/components/JoinPanel';
 import { fetchTournamentById } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -51,8 +52,8 @@ export function Home() {
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
-    <div className="app-texture min-h-screen bg-bg-primary">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+28px)]">
+    <AuroraBackground className="!block !h-auto !min-h-screen !bg-bg-primary">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+28px)]">
         {/* Logo centered at ~40% height */}
         <div className="flex min-h-[40%] items-end justify-center pt-[15vh]">
           <Brand size="lg" />
@@ -100,6 +101,6 @@ export function Home() {
           </motion.div>
         </motion.div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }

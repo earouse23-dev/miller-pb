@@ -1,6 +1,19 @@
+import flattenColorPalette from 'tailwindcss/lib/util/flattenColorPalette';
+
+// Exposes every Tailwind color as a global CSS variable (e.g. var(--blue-500)),
+// which the AuroraBackground gradient stops reference.
+function addVariablesForColors({ addBase, theme }) {
+  const allColors = flattenColorPalette(theme('colors'));
+  const newVars = Object.fromEntries(
+    Object.entries(allColors).map(([key, val]) => [`--${key}`, val]),
+  );
+  addBase({ ':root': newVars });
+}
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -79,14 +92,19 @@ export default {
           '55%': { transform: 'rotateX(-90deg)', opacity: '0.25' },
           '100%': { transform: 'rotateX(0)', opacity: '1' },
         },
+        aurora: {
+          from: { backgroundPosition: '50% 50%, 50% 50%' },
+          to: { backgroundPosition: '350% 50%, 350% 50%' },
+        },
       },
       animation: {
         shake: 'shake 0.4s cubic-bezier(0.22,1,0.36,1)',
         'pulse-soft': 'pulse-soft 1.8s ease-in-out infinite',
         spin: 'spin 0.7s linear infinite',
         flip: 'flip 300ms cubic-bezier(0.22,1,0.36,1)',
+        aurora: 'aurora 60s linear infinite',
       },
     },
   },
-  plugins: [],
+  plugins: [addVariablesForColors],
 };
