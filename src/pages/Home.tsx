@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Brand } from '@/components/layout/Brand';
 import { Button } from '@/components/ui/Button';
-import { JoinModal } from '@/components/JoinModal';
+import { JoinPanel } from '@/components/JoinPanel';
 import { fetchTournamentById } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { clearActiveTournament, getActiveTournamentId, getUserIdentity } from '@/lib/utils';
@@ -66,6 +66,12 @@ export function Home() {
           variants={{ show: { transition: { staggerChildren: 0.04 } } }}
           className="flex flex-col gap-4"
         >
+          {/* Inline invite-code entry, directly above Create. Stays in normal
+              flow so the mobile keyboard scrolls it into view. */}
+          <AnimatePresence>
+            {joinOpen && <JoinPanel key="join-panel" onCancel={() => setJoinOpen(false)} />}
+          </AnimatePresence>
+
           <motion.div
             variants={{ hidden: { y: 8 }, show: { y: 0 } }}
             transition={{ duration: 0.22, ease: EASE }}
@@ -74,14 +80,16 @@ export function Home() {
               Create Tournament
             </Button>
           </motion.div>
-          <motion.div
-            variants={{ hidden: { y: 8 }, show: { y: 0 } }}
-            transition={{ duration: 0.22, ease: EASE }}
-          >
-            <Button fullWidth variant="secondary" disabled={checking} onClick={() => setJoinOpen(true)}>
-              Join Tournament
-            </Button>
-          </motion.div>
+          {!joinOpen && (
+            <motion.div
+              variants={{ hidden: { y: 8 }, show: { y: 0 } }}
+              transition={{ duration: 0.22, ease: EASE }}
+            >
+              <Button fullWidth variant="secondary" disabled={checking} onClick={() => setJoinOpen(true)}>
+                Join Tournament
+              </Button>
+            </motion.div>
+          )}
           <motion.div
             variants={{ hidden: { y: 8 }, show: { y: 0 } }}
             transition={{ duration: 0.22, ease: EASE }}
@@ -92,8 +100,6 @@ export function Home() {
           </motion.div>
         </motion.div>
       </div>
-
-      <JoinModal open={joinOpen} onClose={() => setJoinOpen(false)} />
     </div>
   );
 }
