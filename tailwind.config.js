@@ -96,6 +96,10 @@ export default {
           from: { backgroundPosition: '50% 50%, 50% 50%' },
           to: { backgroundPosition: '350% 50%, 350% 50%' },
         },
+        shimmer2: {
+          '0%': { backgroundPosition: '0% 0%' },
+          '100%': { backgroundPosition: '-200% 0%' },
+        },
       },
       animation: {
         shake: 'shake 0.4s cubic-bezier(0.22,1,0.36,1)',
@@ -103,6 +107,7 @@ export default {
         spin: 'spin 0.7s linear infinite',
         flip: 'flip 300ms cubic-bezier(0.22,1,0.36,1)',
         aurora: 'aurora 60s linear infinite',
+        shimmer2: 'shimmer2 2s linear infinite',
       },
     },
   },

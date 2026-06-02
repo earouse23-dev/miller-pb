@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Trophy, Medal } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
+import { Counter } from '@/components/ui/animated-counter';
 import { fetchLeaderboard, fetchLifetimeStats } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from '@/store/useToastStore';
@@ -181,20 +182,20 @@ function ProfilePanel({
       )}
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Stat label="Tournament wins" value={s.tournament_wins} accent />
+        <Stat label="Tournament wins" value={s.tournament_wins} count={s.tournament_wins} accent />
         <Stat label="Win rate" value={`${winRate(s.total_wins, s.total_losses)}%`} accent />
-        <Stat label="Match wins" value={s.total_wins} />
-        <Stat label="Match losses" value={s.total_losses} />
-        <Stat label="Matches played" value={matches} />
+        <Stat label="Match wins" value={s.total_wins} count={s.total_wins} />
+        <Stat label="Match losses" value={s.total_losses} count={s.total_losses} />
+        <Stat label="Matches played" value={matches} count={matches} />
         <Stat label="Avg diff / match" value={`${avgDiff > 0 ? '+' : ''}${avgDiff}`} tone={avgDiff > 0 ? 'success' : avgDiff < 0 ? 'danger' : 'muted'} />
-        <Stat label="Points for" value={s.total_points_for} />
-        <Stat label="Points against" value={s.total_points_against} />
+        <Stat label="Points for" value={s.total_points_for} count={s.total_points_for} />
+        <Stat label="Points against" value={s.total_points_against} count={s.total_points_against} />
         <Stat
           label="Point differential"
           value={`${diff > 0 ? '+' : ''}${diff}`}
           tone={diff > 0 ? 'success' : diff < 0 ? 'danger' : 'muted'}
         />
-        <Stat label="Tournaments played" value={s.tournaments_played} />
+        <Stat label="Tournaments played" value={s.tournaments_played} count={s.tournaments_played} />
       </div>
     </div>
   );
@@ -203,11 +204,14 @@ function ProfilePanel({
 function Stat({
   label,
   value,
+  count,
   accent,
   tone,
 }: {
   label: string;
   value: string | number;
+  /** When set, the value rolls up from 0 via the animated Counter. */
+  count?: number;
   accent?: boolean;
   tone?: 'success' | 'danger' | 'muted';
 }) {
@@ -218,10 +222,27 @@ function Stat({
       : tone === 'danger'
         ? 'text-danger'
         : 'text-content-primary';
+  const colorImportant = accent
+    ? '!text-accent'
+    : tone === 'success'
+      ? '!text-success'
+      : tone === 'danger'
+        ? '!text-danger'
+        : '!text-content-primary';
   return (
     <div className="rounded-input border border-line bg-surface p-3 shadow-inset">
       <p className="eyebrow">{label}</p>
-      <p className={cn('font-display mt-1 text-[28px] tracking-[0.02em]', color)}>{value}</p>
+      {count != null ? (
+        <Counter
+          key={count}
+          end={count}
+          duration={0.9}
+          fontSize={28}
+          className={cn('mt-1 !px-0 font-display tracking-[0.02em]', colorImportant)}
+        />
+      ) : (
+        <p className={cn('font-display mt-1 text-[28px] tracking-[0.02em]', color)}>{value}</p>
+      )}
     </div>
   );
 }
