@@ -74,8 +74,12 @@ export function Modal({
             isSheet ? 'items-end sm:items-center' : 'items-center',
           )}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: 1, pointerEvents: 'auto' }}
+          // pointerEvents off the moment we start exiting: if framer's exit ever
+          // stalls (a setState landing on the exiting subtree, a WebKit timing
+          // deadlock), the lingering full-screen layer passes clicks through
+          // instead of freezing the page.
+          exit={{ opacity: 0, pointerEvents: 'none' }}
           transition={{ duration: 0.18, ease: EASE }}
         >
           <div className="absolute inset-0 bg-black/60" onClick={() => dismissable && onClose()} />

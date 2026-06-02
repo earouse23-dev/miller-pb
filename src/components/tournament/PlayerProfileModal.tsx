@@ -50,24 +50,31 @@ export function PlayerProfileModal({
     }
   }, [open, playerId, playerName]);
 
-  // Load the active player's lifetime stats.
+  // Load the active player's lifetime stats. The `cancelled` guard prevents a
+  // late-resolving fetch from calling setState after the sheet has closed —
+  // that update would land on the modal mid-exit and can deadlock framer's
+  // AnimatePresence exit, leaving an invisible overlay that swallows all input.
   useEffect(() => {
     if (!open || !activeId) return;
+    let cancelled = false;
     setStatsLoading(true);
     fetchLifetimeStats(activeId)
-      .then(setStats)
-      .catch((e) => toast.error(e instanceof Error ? e.message : 'Could not load stats.'))
-      .finally(() => setStatsLoading(false));
+      .then((s) => { if (!cancelled) setStats(s); })
+      .catch((e) => { if (!cancelled) toast.error(e instanceof Error ? e.message : 'Could not load stats.'); })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
   }, [open, activeId]);
 
-  // Load the leaderboard when its tab is first opened.
+  // Load the leaderboard when its tab is first opened (same cancel guard).
   useEffect(() => {
     if (!open || tab !== 'leaderboard') return;
+    let cancelled = false;
     setBoardLoading(true);
     fetchLeaderboard()
-      .then(setBoard)
-      .catch((e) => toast.error(e instanceof Error ? e.message : 'Could not load leaderboard.'))
-      .finally(() => setBoardLoading(false));
+      .then((b) => { if (!cancelled) setBoard(b); })
+      .catch((e) => { if (!cancelled) toast.error(e instanceof Error ? e.message : 'Could not load leaderboard.'); })
+      .finally(() => { if (!cancelled) setBoardLoading(false); });
+    return () => { cancelled = true; };
   }, [open, tab]);
 
   const showProfile = profileOnly || tab === 'profile';
