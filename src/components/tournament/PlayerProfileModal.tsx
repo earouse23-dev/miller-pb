@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Trophy, Medal } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
@@ -70,55 +70,54 @@ export function PlayerProfileModal({
       .finally(() => setBoardLoading(false));
   }, [open, tab]);
 
+  const showProfile = profileOnly || tab === 'profile';
+
   return (
     <Modal open={open} onClose={onClose} variant="slide-up" className="max-w-lg">
-      {/* Tabs (hidden when used as a standalone profile, e.g. from the
-          Leaderboard screen — there, closing returns to the leaderboard). */}
-      <div className={cn('mb-5 flex gap-6 border-b border-line', profileOnly && 'hidden')}>
-        {(['profile', 'leaderboard'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              'relative pb-2.5 text-sm font-semibold capitalize transition-colors',
-              tab === t ? 'text-content-primary' : 'text-content-muted hover:text-content-secondary',
-            )}
-          >
-            {t}
-            {tab === t && (
-              <motion.span
-                layoutId="profile-tab-underline"
-                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"
+      {/* Tabs — not rendered at all for a standalone profile (from the
+          Leaderboard screen), so closing simply returns to the leaderboard. */}
+      {!profileOnly && (
+        <div className="mb-5 flex gap-6 border-b border-line">
+          {(['profile', 'leaderboard'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                'relative pb-2.5 text-sm font-semibold capitalize transition-colors',
+                tab === t ? 'text-content-primary' : 'text-content-muted hover:text-content-secondary',
+              )}
+            >
+              {t}
+              <span
+                className={cn(
+                  'absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent transition-opacity',
+                  tab === t ? 'opacity-100' : 'opacity-0',
+                )}
               />
-            )}
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={tab}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.16 }}
-        >
-          {tab === 'profile' ? (
-            <ProfilePanel name={activeName} stats={stats} loading={statsLoading} />
-          ) : (
-            <LeaderboardPanel
-              rows={board}
-              loading={boardLoading}
-              activeId={activeId}
-              onPick={(row) => {
-                setActiveId(row.player_id);
-                setActiveName(row.name);
-                setTab('profile');
-              }}
-            />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      {/* Keyed fade on tab change. No nested AnimatePresence / mode="wait":
+          that can deadlock the modal's own exit on mobile WebKit and leave the
+          sheet stuck open (which reads as the whole screen being frozen). */}
+      <motion.div key={showProfile ? 'profile' : 'leaderboard'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.16 }}>
+        {showProfile ? (
+          <ProfilePanel name={activeName} stats={stats} loading={statsLoading} />
+        ) : (
+          <LeaderboardPanel
+            rows={board}
+            loading={boardLoading}
+            activeId={activeId}
+            onPick={(row) => {
+              setActiveId(row.player_id);
+              setActiveName(row.name);
+              setTab('profile');
+            }}
+          />
+        )}
+      </motion.div>
     </Modal>
   );
 }

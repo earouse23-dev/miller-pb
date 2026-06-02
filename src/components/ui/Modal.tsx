@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -41,10 +41,19 @@ export function Modal({
   className,
   dismissable = true,
 }: ModalProps) {
+  // Keep latest onClose/dismissable in refs so the lock effect can depend ONLY
+  // on `open`. Otherwise an inline onClose from a frequently re-rendering parent
+  // (e.g. a live tournament) would re-run this effect every render, thrashing
+  // the body scroll-lock.
+  const onCloseRef = useRef(onClose);
+  const dismissableRef = useRef(dismissable);
+  onCloseRef.current = onClose;
+  dismissableRef.current = dismissable;
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissable) onClose();
+      if (e.key === 'Escape' && dismissableRef.current) onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     lockScroll();
@@ -52,7 +61,7 @@ export function Modal({
       window.removeEventListener('keydown', onKey);
       unlockScroll();
     };
-  }, [open, onClose, dismissable]);
+  }, [open]);
 
   const isSheet = variant === 'slide-up';
 
