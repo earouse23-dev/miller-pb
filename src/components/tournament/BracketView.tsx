@@ -9,6 +9,8 @@ interface BracketViewProps {
   teams: Map<string, TeamWithPlayers>;
   onScore: (match: Match) => void;
   championTeamId?: string | null;
+  /** Completed matches whose score can still be re-entered. */
+  editableMatchIds?: Set<string>;
 }
 
 interface Conn {
@@ -17,7 +19,7 @@ interface Conn {
 }
 
 /** Single-elimination bracket as columns per round with connector lines. */
-export function BracketView({ rounds, teams, onScore, championTeamId }: BracketViewProps) {
+export function BracketView({ rounds, teams, onScore, championTeamId, editableMatchIds }: BracketViewProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [conns, setConns] = useState<Conn[]>([]);
@@ -89,6 +91,7 @@ export function BracketView({ rounds, teams, onScore, championTeamId }: BracketV
                   onScore={onScore}
                   isFinal={isFinalCol}
                   championTeamId={championTeamId}
+                  editable={editableMatchIds?.has(m.id)}
                 />
               ))}
             </div>
@@ -108,8 +111,9 @@ const BracketMatch = forwardRef<
     onScore: (match: Match) => void;
     isFinal: boolean;
     championTeamId?: string | null;
+    editable?: boolean;
   }
->(function BracketMatch({ match, team1, team2, onScore, isFinal, championTeamId }, ref) {
+>(function BracketMatch({ match, team1, team2, onScore, isFinal, championTeamId, editable }, ref) {
   const completed = match.status === 'completed';
   const multi = isMultiGame(match);
   // Headline = games won for best-of, total points for a single game.
@@ -119,6 +123,7 @@ const BracketMatch = forwardRef<
   const t1Won = winner === 'team1';
   const t2Won = winner === 'team2';
   const playable = !match.is_bye && Boolean(match.team1_id && match.team2_id) && !completed;
+  const clickable = playable || (completed && Boolean(editable));
   const champWon = isFinal && completed && Boolean(championTeamId);
 
   const Team = ({ id, label, score, won, lose }: { id: string | null; label: string; score: number | null; won: boolean; lose: boolean }) => (
@@ -139,10 +144,10 @@ const BracketMatch = forwardRef<
   return (
     <div
       ref={ref}
-      onClick={() => playable && onScore(match)}
+      onClick={() => clickable && onScore(match)}
       className={cn(
         'overflow-hidden rounded-sm border bg-surface',
-        playable ? 'cursor-pointer hover:border-content-muted' : 'cursor-default',
+        clickable ? 'cursor-pointer hover:border-content-muted' : 'cursor-default',
         champWon ? 'border-accent' : 'border-line',
       )}
     >
@@ -159,6 +164,7 @@ const BracketMatch = forwardRef<
       <div className="flex items-center justify-between border-t border-line px-3 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-content-muted">
         <span>{completed ? 'Final' : playable ? 'Upcoming' : 'TBD'}</span>
         {playable && <span className="text-accent">Score</span>}
+        {completed && editable && <span className="text-content-secondary">Edit</span>}
       </div>
     </div>
   );

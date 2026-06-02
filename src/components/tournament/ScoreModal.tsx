@@ -35,12 +35,16 @@ export function ScoreModal({ match, team1, team2, target, format, onClose, onSub
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const editing = match?.status === 'completed';
+
   // Reset whenever the target match changes (incl. close). Pre-fill from any
-  // previously recorded games.
+  // previously recorded games, falling back to a legacy single-game score.
   useEffect(() => {
     const existing = match?.games;
     if (existing && existing.length > 0) {
       setRows(existing.map((g) => ({ a: String(g.a), b: String(g.b) })));
+    } else if (match?.status === 'completed' && match.team1_score != null && match.team2_score != null) {
+      setRows([{ a: String(match.team1_score), b: String(match.team2_score) }]);
     } else {
       setRows([emptyRow()]);
     }
@@ -131,7 +135,7 @@ export function ScoreModal({ match, team1, team2, target, format, onClose, onSub
     : `${format === 'best_of_5' ? 'Best of 5' : 'Best of 3'} · games to ${target}, win by 2`;
 
   return (
-    <Modal open={Boolean(match)} onClose={onClose} variant="slide-up" title="Score Match" dismissable={!submitting}>
+    <Modal open={Boolean(match)} onClose={onClose} variant="slide-up" title={editing ? 'Edit Score' : 'Score Match'} dismissable={!submitting}>
       <p className="-mt-1 mb-4 text-center text-[13px] text-content-secondary">{subtitle}</p>
 
       {!single && (
@@ -184,7 +188,7 @@ export function ScoreModal({ match, team1, team2, target, format, onClose, onSub
       {error && <p className="mt-3 text-center text-[13px] font-medium text-danger">{error}</p>}
 
       <Button fullWidth className="mt-5" onClick={submit} loading={submitting} disabled={!decided}>
-        Submit Score
+        {editing ? 'Update Score' : 'Submit Score'}
       </Button>
     </Modal>
   );

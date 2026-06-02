@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isMultiGame, matchWinnerSide } from '@/lib/tournament-logic';
 import type { Match, TeamWithPlayers } from '@/lib/types';
@@ -10,9 +10,11 @@ interface MatchCardProps {
   team1: TeamWithPlayers | undefined;
   team2: TeamWithPlayers | undefined;
   onScore: (match: Match) => void;
+  /** Completed match whose score can still be re-entered. */
+  editable?: boolean;
 }
 
-export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
+export function MatchCard({ match, team1, team2, onScore, editable }: MatchCardProps) {
   const label1 = teamLabel(team1);
   const label2 = teamLabel(team2);
 
@@ -82,11 +84,26 @@ export function MatchCard({ match, team1, team2, onScore }: MatchCardProps) {
             Score <ArrowRight className="h-4 w-4" />
           </span>
         )}
+        {completed && editable && (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium tracking-[0.04em] text-content-secondary">
+            Edit <Pencil className="h-3.5 w-3.5" />
+          </span>
+        )}
       </div>
     </>
   );
 
   if (completed) {
+    if (editable) {
+      return (
+        <button
+          onClick={() => onScore(match)}
+          className="w-full overflow-hidden rounded-card border border-line bg-surface text-left shadow-inset transition-colors duration-200 ease-smooth hover:border-content-muted"
+        >
+          {inner}
+        </button>
+      );
+    }
     return (
       <motion.div
         initial={{ y: 6 }}

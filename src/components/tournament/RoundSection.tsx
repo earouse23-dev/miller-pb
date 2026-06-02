@@ -6,9 +6,10 @@ interface RoundSectionProps {
   group: RoundGroup;
   teams: Map<string, TeamWithPlayers>;
   onScore: (match: Match) => void;
+  editableMatchIds?: Set<string>;
 }
 
-export function RoundSection({ group, teams, onScore }: RoundSectionProps) {
+export function RoundSection({ group, teams, onScore, editableMatchIds }: RoundSectionProps) {
   const stage = group.isBracket ? 'Bracket' : 'Round Robin';
 
   return (
@@ -26,6 +27,7 @@ export function RoundSection({ group, teams, onScore }: RoundSectionProps) {
             team1={m.team1_id ? teams.get(m.team1_id) : undefined}
             team2={m.team2_id ? teams.get(m.team2_id) : undefined}
             onScore={onScore}
+            editable={editableMatchIds?.has(m.id)}
           />
         ))}
       </div>

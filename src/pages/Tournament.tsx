@@ -22,7 +22,7 @@ import {
 } from '@/lib/api';
 import { isDoubles } from '@/lib/utils';
 import { clearActiveTournament, setActiveTournament } from '@/lib/utils';
-import { isBracketRound } from '@/lib/tournament-logic';
+import { isBracketRound, isMatchEditable } from '@/lib/tournament-logic';
 import { toast } from '@/store/useToastStore';
 import { cn } from '@/lib/utils';
 import type { GameFormat, GameScore, Match } from '@/lib/types';
@@ -144,6 +144,13 @@ export function Tournament() {
     ? (isBracketRound(scoringMatch.round_number) ? tournament.bracket_format : tournament.rr_format) ?? 'single'
     : 'single';
 
+  // Completed matches whose score can still be re-entered (nothing already
+  // played depends on them). Locked entirely once the tournament has ended.
+  const editableMatchIds = new Set<string>();
+  if (!ended) {
+    for (const m of matches) if (isMatchEditable(m, matches)) editableMatchIds.add(m.id);
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -209,6 +216,7 @@ export function Tournament() {
                           teams={teams}
                           onScore={setScoringMatch}
                           championTeamId={champion?.teamId}
+                          editableMatchIds={editableMatchIds}
                         />
                       </motion.div>
                     ) : (
@@ -221,7 +229,13 @@ export function Tournament() {
                         className="flex flex-col gap-7"
                       >
                         {rrRounds.map((g) => (
-                          <RoundSection key={g.key} group={g} teams={teams} onScore={setScoringMatch} />
+                          <RoundSection
+                            key={g.key}
+                            group={g}
+                            teams={teams}
+                            onScore={setScoringMatch}
+                            editableMatchIds={editableMatchIds}
+                          />
                         ))}
                       </motion.div>
                     )}

@@ -64,6 +64,28 @@ export function isMultiGame(m: Pick<Match, 'team1_games' | 'team2_games'>): bool
   return (m.team1_games ?? 0) + (m.team2_games ?? 0) > 1;
 }
 
+/** Whether a completed match's score can still be safely re-entered without
+ *  corrupting already-played downstream matches.
+ *  - Round robin: editable until a bracket has been seeded from the standings.
+ *  - Bracket: editable until the match it feeds into has itself been played. */
+export function isMatchEditable(match: Match, matches: Match[]): boolean {
+  if (match.status !== 'completed' || match.is_bye) return false;
+  if (!match.team1_id || !match.team2_id) return false;
+
+  if (isBracketRound(match.round_number)) {
+    const bracket = matches.filter((m) => isBracketRound(m.round_number));
+    const next = nextBracketSlot(bracket, match, match.team1_id);
+    if (next) {
+      const nextMatch = matches.find((m) => m.id === next.targetId);
+      if (nextMatch && nextMatch.status === 'completed') return false;
+    }
+    return true;
+  }
+
+  // Round-robin match: locked once the bracket exists (seeding depends on it).
+  return !matches.some((m) => isBracketRound(m.round_number));
+}
+
 /** Bracket rounds are offset so they never collide with round-robin round
  *  numbers in the "both" format. round_number >= BRACKET_BASE => bracket. */
 export const BRACKET_BASE = 1000;
