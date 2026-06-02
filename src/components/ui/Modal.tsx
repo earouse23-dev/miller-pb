@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -63,6 +63,30 @@ export function Modal({
     };
   }, [open]);
 
+  // How much of the viewport the on-screen keyboard occludes. On iOS the
+  // soft keyboard doesn't push fixed elements up, so a bottom sheet ends up
+  // hidden behind it (you can't see the code field). We lift the sheet by this
+  // amount via padding on the (bottom-anchored) overlay.
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  useEffect(() => {
+    if (!open) {
+      setKeyboardInset(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setKeyboardInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [open]);
+
   const isSheet = variant === 'slide-up';
 
   return (
@@ -70,9 +94,11 @@ export function Modal({
       {open && (
         <motion.div
           className={cn(
-            'fixed inset-0 z-50 flex justify-center p-0 sm:p-4',
+            'fixed inset-0 z-50 flex justify-center p-0 transition-[padding] duration-200 ease-out sm:p-4',
             isSheet ? 'items-end sm:items-center' : 'items-center',
           )}
+          // Lift the sheet above the soft keyboard when one is open.
+          style={keyboardInset > 0 ? { paddingBottom: keyboardInset } : undefined}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, pointerEvents: 'auto' }}
           // pointerEvents off the moment we start exiting: if framer's exit ever
