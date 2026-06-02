@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { fetchTournamentByCode } from '@/lib/api';
-import { setActiveTournament } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface JoinModalProps {
@@ -46,7 +45,9 @@ export function JoinModal({ open, onClose }: JoinModalProps) {
         setShake((s) => s + 1);
         return;
       }
-      setActiveTournament(tournament.id);
+      // Don't remember this as the device's active tournament — only the host
+      // auto-resumes (set in Tournament once we confirm host identity). A
+      // joiner returns to Home next launch and re-enters the code.
       navigate(`/tournament/${tournament.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');

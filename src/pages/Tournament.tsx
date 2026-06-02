@@ -53,10 +53,11 @@ export function Tournament() {
   const [profile, setProfile] = useState<{ id: string; name: string } | null>(null);
   const [castOpen, setCastOpen] = useState(false);
 
-  // Remember this as the active tournament so Home can auto-resume it.
+  // Remember this as the active tournament so Home can auto-resume it — but
+  // only for the host. Joiners are never auto-resumed; they start on Home.
   useEffect(() => {
-    if (tournament && tournament.status === 'active') setActiveTournament(tournament.id);
-  }, [tournament]);
+    if (tournament && tournament.status === 'active' && isHost) setActiveTournament(tournament.id);
+  }, [tournament, isHost]);
 
   const handleSubmitScore = async (match: Match, games: GameScore[]) => {
     await submitScore(match, games, matches);

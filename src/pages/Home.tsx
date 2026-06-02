@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { JoinModal } from '@/components/JoinModal';
 import { fetchTournamentById } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { clearActiveTournament, getActiveTournamentId } from '@/lib/utils';
+import { clearActiveTournament, getActiveTournamentId, getUserIdentity } from '@/lib/utils';
 import { useTournamentStore } from '@/store/useTournamentStore';
 import { SetupNotice } from '@/components/SetupNotice';
 
@@ -23,7 +23,9 @@ export function Home() {
     useTournamentStore.getState().reset();
   }, []);
 
-  // Auto-resume an active tournament saved on this device.
+  // Auto-resume an active tournament saved on this device — but ONLY for the
+  // host who created it. Joiners always land here so they can enter a code (or
+  // create), instead of being pulled back into someone else's live tournament.
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setChecking(false);
@@ -36,7 +38,7 @@ export function Home() {
     }
     fetchTournamentById(activeId)
       .then((t) => {
-        if (t && t.status === 'active') {
+        if (t && t.status === 'active' && t.host_identity === getUserIdentity()) {
           navigate(`/tournament/${t.id}`, { replace: true });
         } else {
           clearActiveTournament();
