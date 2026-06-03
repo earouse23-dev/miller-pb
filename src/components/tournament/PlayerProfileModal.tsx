@@ -4,6 +4,7 @@ import { Trophy, Medal } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { Counter } from '@/components/ui/animated-counter';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { fetchLeaderboard, fetchLifetimeStats } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from '@/store/useToastStore';
@@ -230,7 +231,7 @@ function Stat({
         ? '!text-danger'
         : '!text-content-primary';
   return (
-    <div className="rounded-input border border-line bg-surface p-3 shadow-inset">
+    <SpotlightCard className="!rounded-input p-3">
       <p className="eyebrow">{label}</p>
       {count != null ? (
         <Counter
@@ -243,7 +244,7 @@ function Stat({
       ) : (
         <p className={cn('font-display mt-1 text-[28px] tracking-[0.02em]', color)}>{value}</p>
       )}
-    </div>
+    </SpotlightCard>
   );
 }
 

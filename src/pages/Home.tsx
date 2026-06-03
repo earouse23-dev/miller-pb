@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Brand } from '@/components/layout/Brand';
 import { Button } from '@/components/ui/Button';
 import { AuroraBackground } from '@/components/ui/aurora-background';
-import ShimmerButton from '@/components/ui/shimmer-button';
 import { JoinPanel } from '@/components/JoinPanel';
 import { fetchTournamentById } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -78,9 +77,9 @@ export function Home() {
             variants={{ hidden: { y: 8 }, show: { y: 0 } }}
             transition={{ duration: 0.22, ease: EASE }}
           >
-            <ShimmerButton className="w-full" disabled={checking} onClick={() => navigate('/create')}>
+            <Button fullWidth disabled={checking} onClick={() => navigate('/create')}>
               Create Tournament
-            </ShimmerButton>
+            </Button>
           </motion.div>
           {!joinOpen && (
             <motion.div

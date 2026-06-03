@@ -13,6 +13,9 @@ import { BracketView } from '@/components/tournament/BracketView';
 import { ChampionOverlay } from '@/components/tournament/ChampionOverlay';
 import { PlayerProfileModal } from '@/components/tournament/PlayerProfileModal';
 import { CourtDisplay } from '@/components/tournament/CourtDisplay';
+import { AuroraBackground } from '@/components/ui/aurora-background';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
+import { Counter } from '@/components/ui/animated-counter';
 import { useTournament } from '@/hooks/useTournament';
 import { useTournamentStore } from '@/store/useTournamentStore';
 import {
@@ -153,6 +156,7 @@ export function Tournament() {
   }
 
   return (
+    <AuroraBackground className="!block !h-auto !min-h-screen !bg-bg-primary">
     <div className="flex min-h-screen flex-col">
       <Header
         inviteCode={tournament.invite_code}
@@ -177,12 +181,14 @@ export function Tournament() {
             {tab === 'schedule' ? (
               <div className="flex flex-col gap-6">
                 {/* Progress */}
-                <div className="rounded-card border border-line bg-surface p-4 shadow-inset">
+                <SpotlightCard className="p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] font-medium text-content-secondary">
                       {progress.completed} of {progress.total} matches done
                     </span>
-                    <span className="font-display text-[22px] tracking-[0.02em] text-accent">{pct}%</span>
+                    <span className="flex items-center font-display text-[22px] tracking-[0.02em] text-accent">
+                      <Counter end={pct} duration={0.6} fontSize={22} className="!px-0 !text-accent" />%
+                    </span>
                   </div>
                   <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-2">
                     <motion.div
@@ -192,7 +198,7 @@ export function Tournament() {
                       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                     />
                   </div>
-                </div>
+                </SpotlightCard>
 
                 {rounds.length === 0 ? (
                   <LoadingState message="Matches are loading…" />
@@ -313,6 +319,7 @@ export function Tournament() {
         teams={teams}
       />
     </div>
+    </AuroraBackground>
   );
 }
 

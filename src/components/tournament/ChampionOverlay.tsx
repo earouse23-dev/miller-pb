@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trophy, Share2, ListOrdered, Save, Check, Home, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
+import { Counter } from '@/components/ui/animated-counter';
 import { fireConfetti } from '@/lib/confetti';
 import { shareStandings, shareWinner } from '@/lib/share';
 import { toast } from '@/store/useToastStore';
@@ -119,11 +121,11 @@ export function ChampionOverlay({
           {/* Stat card */}
           {champ && (
             <FadeUp delay={0.32}>
-              <div className="rounded-card border border-line bg-surface p-5 shadow-inset">
+              <SpotlightCard className="p-5" spotlightColor="rgba(74,222,128,0.18)">
                 <StatRow k="Record" v={`${champ.wins}–${champ.losses}`} accent />
-                <StatRow k="Points for" v={`${champ.points_for}`} />
+                <StatRow k="Points for" v={`${champ.points_for}`} count={champ.points_for} />
                 <StatRow k="Point differential" v={`${champ.diff > 0 ? '+' : ''}${champ.diff}`} />
-              </div>
+              </SpotlightCard>
             </FadeUp>
           )}
 
@@ -171,13 +173,22 @@ export function ChampionOverlay({
   );
 }
 
-function StatRow({ k, v, accent }: { k: string; v: string; accent?: boolean }) {
+function StatRow({ k, v, accent, count }: { k: string; v: string; accent?: boolean; count?: number }) {
   return (
     <div className="flex items-center justify-between border-line py-2.5 [&:not(:first-child)]:border-t">
       <span className="text-[14px] text-content-secondary">{k}</span>
-      <span className={`font-display text-[22px] tracking-[0.02em] ${accent ? 'text-accent' : 'text-content-primary'}`}>
-        {v}
-      </span>
+      {count != null ? (
+        <Counter
+          end={count}
+          duration={1}
+          fontSize={22}
+          className={`!px-0 font-display tracking-[0.02em] ${accent ? '!text-accent' : '!text-content-primary'}`}
+        />
+      ) : (
+        <span className={`font-display text-[22px] tracking-[0.02em] ${accent ? 'text-accent' : 'text-content-primary'}`}>
+          {v}
+        </span>
+      )}
     </div>
   );
 }

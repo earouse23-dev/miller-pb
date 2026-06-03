@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { AuroraBackground } from '@/components/ui/aurora-background';
 import { FormatStep } from '@/components/create/FormatStep';
 import { ScoringStep } from '@/components/create/ScoringStep';
 import { MatchTypeStep } from '@/components/create/MatchTypeStep';
@@ -145,7 +146,7 @@ export function Create() {
   const isLastStep = step === totalSteps;
 
   return (
-    <div className="min-h-screen bg-ambient">
+    <AuroraBackground className="!block !h-auto !min-h-screen !bg-ambient">
       {/* Top bar: progress + close */}
       <div className="sticky top-0 z-20 border-b border-line bg-bg-primary/85 backdrop-blur-md">
         <div className="mx-auto max-w-lg px-5 pt-3 pb-3">
@@ -233,6 +234,6 @@ export function Create() {
           )}
         </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }

@@ -19,7 +19,8 @@ interface ButtonProps
 }
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-ink hover:brightness-95 disabled:opacity-35',
+  primary:
+    'text-ink bg-[linear-gradient(110deg,#4ADE80,45%,#BBF7D0,55%,#4ADE80)] bg-[length:200%_100%] animate-shimmer2 hover:brightness-95 disabled:opacity-35 disabled:animate-none',
   secondary:
     'bg-transparent text-accent border border-accent hover:brightness-95 disabled:opacity-35',
   ghost: 'bg-transparent text-content-secondary hover:bg-surface hover:text-content-primary disabled:opacity-35',

@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion';
 import { ArrowRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { isMultiGame, matchWinnerSide } from '@/lib/tournament-logic';
 import type { Match, TeamWithPlayers } from '@/lib/types';
 import { teamLabel } from '@/lib/utils';
@@ -93,38 +93,31 @@ export function MatchCard({ match, team1, team2, onScore, editable }: MatchCardP
     </>
   );
 
-  if (completed) {
-    if (editable) {
-      return (
-        <button
-          onClick={() => onScore(match)}
-          className="w-full overflow-hidden rounded-card border border-line bg-surface text-left shadow-inset transition-colors duration-200 ease-smooth hover:border-content-muted"
-        >
-          {inner}
-        </button>
-      );
-    }
-    return (
-      <motion.div
-        initial={{ y: 6 }}
-        animate={{ y: 0 }}
-        className="overflow-hidden rounded-card border border-line bg-surface shadow-inset"
-      >
-        {inner}
-      </motion.div>
-    );
-  }
+  const interactive = playable || (completed && Boolean(editable));
 
   return (
-    <button
-      onClick={() => playable && onScore(match)}
-      disabled={!playable}
+    <SpotlightCard
+      spotlightColor="rgba(74,222,128,0.13)"
+      onClick={interactive ? () => onScore(match) : undefined}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onScore(match);
+              }
+            }
+          : undefined
+      }
       className={cn(
-        'w-full overflow-hidden rounded-card border bg-surface text-left shadow-inset transition-colors duration-200 ease-smooth',
-        playable ? 'border-line hover:border-content-muted' : 'cursor-default border-line opacity-70',
+        'text-left',
+        interactive && 'cursor-pointer',
+        !playable && !completed && 'opacity-70',
       )}
     >
       {inner}
-    </button>
+    </SpotlightCard>
   );
 }

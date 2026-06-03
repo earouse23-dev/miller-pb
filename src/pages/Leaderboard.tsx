@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Trophy, Medal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Spinner';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
+import { AuroraBackground } from '@/components/ui/aurora-background';
+import { Counter } from '@/components/ui/animated-counter';
 import { PlayerProfileModal } from '@/components/tournament/PlayerProfileModal';
 import { fetchLeaderboard } from '@/lib/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -62,7 +64,7 @@ export function Leaderboard() {
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <AuroraBackground className="!block !h-auto !min-h-screen !bg-bg-primary">
       {/* Top nav */}
       <div className="sticky top-0 z-20 border-b border-line bg-bg-primary/85 backdrop-blur-md">
         <div className="mx-auto grid max-w-lg grid-cols-[44px_1fr_44px] items-center px-5 py-3">
@@ -152,7 +154,9 @@ export function Leaderboard() {
 
                   {/* Win rate */}
                   <span className="shrink-0 text-right">
-                    <span className="font-display text-[24px] leading-none tracking-[0.02em] text-accent">{rate}%</span>
+                    <span className="flex items-center justify-end font-display text-[24px] leading-none tracking-[0.02em] text-accent">
+                      <Counter end={rate} duration={0.8} fontSize={24} className="!px-0 !text-accent" />%
+                    </span>
                     <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-content-muted">
                       Win rate
                     </span>
@@ -172,6 +176,6 @@ export function Leaderboard() {
         playerName={profile?.name ?? null}
         profileOnly
       />
-    </div>
+    </AuroraBackground>
   );
 }
